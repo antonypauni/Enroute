@@ -1,0 +1,2 @@
+export function kinOffers(trips,query,currency='ALL'){const norm=s=>String(s||'').trim().toLocaleLowerCase('fr-FR');return trips.filter(t=>t.scope==='kin'&&!t.isMine&&t.from===query.from&&t.to===query.to&&t.date===query.date&&t.seats>=Number(query.seats)&&(currency==='ALL'||t.currency===currency)&&['fromQuarter','toQuarter','pickup','dropoff'].every(k=>!norm(query[k])||norm(t[k]).includes(norm(query[k]))))}
+export const kinOffer=(trips,query,currency='ALL')=>kinOffers(trips,query,currency)[0]||null;

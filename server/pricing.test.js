@@ -1,0 +1,1 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{bookingPrice}from'../src/pricing.js';test('total FC et USD, arrondi et quantité invalide',()=>{assert.equal(bookingPrice(5000,3,'CDF').total,15000);assert.equal(bookingPrice(2.35,3,'USD').total,7.05);assert.throws(()=>bookingPrice(5000,0,'CDF'));assert.throws(()=>bookingPrice(5000,1.5,'CDF'))});

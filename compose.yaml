@@ -1,0 +1,13 @@
+services:
+  enroute:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?Configurez PUBLIC_ORIGIN}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Configurez ADMIN_EMAIL}
+    volumes:
+      - enroute_data:/data
+volumes:
+  enroute_data:

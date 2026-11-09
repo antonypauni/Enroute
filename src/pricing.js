@@ -1,0 +1,1 @@
+export function bookingPrice(unitPrice,seats,currency){if(!Number.isFinite(unitPrice)||unitPrice<=0||!Number.isInteger(seats)||seats<1||seats>6||!['CDF','USD'].includes(currency))throw Error('Prix ou nombre de places invalide.');const amount=Math.round(unitPrice*seats*100)/100;return {unitPrice,seats,currency,total:amount,fees:0};}
