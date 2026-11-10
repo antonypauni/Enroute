@@ -12,3 +12,10 @@
 - Formulaire de course regroupé dans une carte, champs lisibles et boutons adaptés au mobile.
 - Mise en évidence de Spécial femme et du montant estimé.
 - Fiches chauffeurs et espacement du tableau de bord harmonisés.
+
+## Parcours course et récupération
+- Récupération propriétaire à clé temporaire et usage unique.
+- Estimation sans compte, contrôle du prix à la confirmation et heure de Kinshasa.
+- Les chauffeurs ne voient plus les demandes dont le départ est passé.
+- Les plaques et pièces des chauffeurs ne sont pas publiques.
+- Tests du parcours complet client, conducteur et administrateur.
