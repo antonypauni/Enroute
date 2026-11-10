@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "En Route",
+    "slug": "en-route-rdc",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/enroute-icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "cd.enroute.mobile",
+      "supportsTablet": false,
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "cd.enroute.mobile",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#173e36",
+        "foregroundImage": "./assets/enroute-adaptive.png"
+      }
+    },
+    "scheme": "enroute",
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "targetSdkVersion": 36,
+            "compileSdkVersion": 36
+          }
+        }
+      ]
+    ],
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  }
+}
