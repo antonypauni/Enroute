@@ -4,7 +4,7 @@ import {StatusBar} from 'expo-status-bar';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 
-const origin = 'https://enroute-rdc-test-toman.antonypauniduquetom.chatgpt.site';
+const origin = (process.env.EXPO_PUBLIC_API_URL || 'https://enroute-rdc-test-toman.antonypauniduquetom.chatgpt.site').replace(/\/$/, '');
 const sessionKey = 'enroute-session-v1';
 const communes = ['Bandalungwa','Barumbu','Bumbu','Gombe','Kalamu','Kasa-Vubu','Kimbanseke','Kinshasa','Kintambo','Kisenso','Lemba','Limete','Lingwala','Makala','Maluku','Masina','Matete','Mont-Ngafula','Ndjili','Ngaba','Ngaliema','Ngiri-Ngiri','Nsele','Selembao'];
 const categories = {standard:'Standard',comfort:'Confort',xl:'XL'};
