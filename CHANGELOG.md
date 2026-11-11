@@ -19,3 +19,8 @@
 - Les chauffeurs ne voient plus les demandes dont le départ est passé.
 - Les plaques et pièces des chauffeurs ne sont pas publiques.
 - Tests du parcours complet client, conducteur et administrateur.
+
+## Commande immédiate
+- Calcul automatique du prix et bouton Commander maintenant sur le site et le mobile.
+- Les demandes immédiates restent visibles aux chauffeurs jusqu’à acceptation ou annulation.
+- Protection contre les demandes immédiates en double et suivi mobile actualisé automatiquement.
