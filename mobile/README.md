@@ -4,14 +4,18 @@ Cette version native sert à tester l’estimation de prix, les demandes de cour
 
 ## Tester sur un téléphone
 
-Installer Expo Go sur les deux téléphones. Relier le téléphone et l’ordinateur au même réseau Wi-Fi. Dans le dossier `mobile` du dépôt, lancer :
+Installer une version d’Expo Go compatible avec Expo SDK 58. Dans le dossier `mobile`, lancer ces commandes. Ngrok est installé comme dépendance locale du projet.
 
 ```sh
-npm ci
-npm start -- --lan
+npm.cmd ci
+npm.cmd run start:tunnel
 ```
 
-Scanner le QR code depuis Expo Go sur Android ou l’appareil photo sur iPhone. Choisir un départ et une destination, vérifier l’estimation, se connecter avec un compte En Route de test, puis envoyer et annuler une demande. Pour vérifier l’acceptation et la note, utiliser aussi un compte de chauffeur déjà validé sur le site.
+Garder le terminal ouvert et scanner son QR code. Si le port est occupé, accepter le port libre proposé. Le tunnel permet de tester depuis un autre réseau. Choisir un départ et une destination, vérifier l’estimation, se connecter avec un compte En Route de test, puis commander et annuler une demande. Pour vérifier l’acceptation et la note, utiliser aussi un compte de chauffeur déjà validé sur le site.
+
+Si la connexion Expo échoue à ouvrir le navigateur, lancer `npm.cmd run login:terminal` et saisir les identifiants directement dans le terminal, puis relancer `npm.cmd run start:tunnel`. Un mot de passe ne doit jamais être placé dans une commande ou un fichier du projet.
+
+Si Expo Go affiche une incompatibilité de version, consulter https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/. Sur iPhone, une version signée compatible peut être nécessaire selon la version disponible dans l’App Store.
 
 Les serveurs Node.js et hébergé proposent `/api/mobile/login`. Pour utiliser votre propre serveur HTTPS, copier `.env.example` vers `.env`, renseigner `EXPO_PUBLIC_API_URL`, puis reconstruire l’application. Le serveur de test En Route est utilisé par défaut.
 
