@@ -13,7 +13,7 @@ npm start -- --lan
 
 Scanner le QR code depuis Expo Go sur Android ou l’appareil photo sur iPhone. Choisir un départ et une destination, vérifier l’estimation, se connecter avec un compte En Route de test, puis envoyer et annuler une demande. Pour vérifier l’acceptation et la note, utiliser aussi un compte de chauffeur déjà validé sur le site.
 
-Le serveur doit proposer `/api/mobile/login`. Le nom de domaine du serveur de test est défini dans `App.js`.
+Les serveurs Node.js et hébergé proposent `/api/mobile/login`. Pour utiliser votre propre serveur HTTPS, copier `.env.example` vers `.env`, renseigner `EXPO_PUBLIC_API_URL`, puis reconstruire l’application. Le serveur de test En Route est utilisé par défaut.
 
 ## Préparer les boutiques
 
@@ -25,3 +25,5 @@ npx eas-cli build --platform all --profile production
 ```
 
 Vérifier les builds signés sur des appareils réels, préparer les captures et les informations de confidentialité correspondant au service final, puis fournir un compte de test aux équipes de revue. Vérifier le parcours de gestion et de suppression des comptes avant soumission. Les fichiers signés et les fiches des boutiques restent à créer. Consulter les [instructions de soumission Expo](https://docs.expo.dev/deploy/submit-to-app-stores/).
+
+Si le QR code local est inaccessible, tester le mode tunnel avec `npx expo start --tunnel ngrok`. Selon la version d’Expo Go, une connexion au même compte Expo sur l’ordinateur et le téléphone peut être nécessaire.
