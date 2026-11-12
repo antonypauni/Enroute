@@ -20,7 +20,7 @@ await test('accès administrateur et client distincts et lieux précis',async()=
  assert.equal((await call('/api/mobile/admin/login',clientCredentials)).status,400);
  const admin=await call('/api/mobile/admin/login',adminCredentials);
  assert.equal(admin.status,200);
- assert.equal((await call('/api/admin/overview',undefined,undefined,admin.data.token)).status,200);
+ const overview=await call('/api/admin/overview',undefined,undefined,admin.data.token);assert.equal(overview.status,200);assert.ok(Array.isArray(overview.data.rides));assert.ok(Array.isArray(overview.data.applications));
  const client=await call('/api/mobile/login',clientCredentials);
  const form={from:'Lemba',to:'Gombe',category:'standard',passengers:3,pickupLandmark:'  Entrée du marché  ',destinationLandmark:' Gare centrale ',immediate:true};
  const estimate=await call('/api/rides/quote',form);
