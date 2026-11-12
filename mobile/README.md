@@ -11,7 +11,7 @@ npm.cmd ci
 npm.cmd run start:tunnel
 ```
 
-Garder le terminal ouvert et scanner son QR code. Si le port est occupé, accepter le port libre proposé. Le tunnel permet de tester depuis un autre réseau. Choisir un départ et une destination, vérifier l’estimation, se connecter avec un compte En Route de test, puis commander et annuler une demande. Pour vérifier l’acceptation et la note, utiliser aussi un compte de chauffeur déjà validé sur le site.
+Garder le terminal ouvert et scanner son QR code. Si le port est occupé, accepter le port libre proposé. Le tunnel permet de tester depuis un autre réseau. Choisir un départ et une destination, vérifier l’estimation, saisir un nom et un téléphone de test, puis commander sans compte et annuler une demande. Pour vérifier l’acceptation et la note, utiliser aussi un compte de chauffeur déjà validé sur le site.
 
 Si la connexion Expo échoue à ouvrir le navigateur, lancer `npm.cmd run login:terminal` et saisir les identifiants directement dans le terminal, puis relancer `npm.cmd run start:tunnel`. Un mot de passe ne doit jamais être placé dans une commande ou un fichier du projet.
 
@@ -31,3 +31,5 @@ npx eas-cli build --platform all --profile production
 Vérifier les builds signés sur des appareils réels, préparer les captures et les informations de confidentialité correspondant au service final, puis fournir un compte de test aux équipes de revue. Vérifier le parcours de gestion et de suppression des comptes avant soumission. Les fichiers signés et les fiches des boutiques restent à créer. Consulter les [instructions de soumission Expo](https://docs.expo.dev/deploy/submit-to-app-stores/).
 
 Si le QR code local est inaccessible, tester le mode tunnel avec `npx expo start --tunnel ngrok`. Selon la version d’Expo Go, une connexion au même compte Expo sur l’ordinateur et le téléphone peut être nécessaire.
+
+La photo est facultative. La connexion client et la création de compte sont facultatives et transfèrent les courses de la session invitée courante. L’administration dispose d’un accès distinct. Une session invitée est liée à cet appareil : associez-la à un compte avant de vous déconnecter pour conserver son historique.
