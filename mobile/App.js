@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {StatusBar} from 'expo-status-bar';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
@@ -55,6 +55,9 @@ export default function App() {
   const [womenOnly, setWomenOnly] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [quoteAttempt, setQuoteAttempt] = useState(0);
+  const [quoteError, setQuoteError] = useState('');
   const [estimate, setEstimate] = useState(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -62,6 +65,7 @@ export default function App() {
 
   async function forgetSession() {
     setSession(null); setAccount(null); setRides([]); setAvailable([]);
+    setPassword('');setPasswordVisible(false);
     await SecureStore.deleteItemAsync(sessionKey);
   }
 
@@ -119,6 +123,7 @@ export default function App() {
     if (busy) return;
     setError('');setNotice('');setPage(next);
     if (next==='trips' && session) run(()=>refresh());
+    if (next==='ride' && !estimate) setQuoteAttempt(value=>value+1);
   }
 
   function resetEstimate(setter, value) { setter(value); setEstimate(null); }
@@ -126,19 +131,22 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    setQuoteError('');
+    setEstimate(null);
     const timer = setTimeout(async () => {
       try {
         const quote = await request('rides/quote', {from,to,category,womenOnly});
-        if (active) {setEstimate(quote);setError('');}
+        if (active) setEstimate(quote);
       } catch (error) {
-        if (active) setError('Impossible de calculer le prix. Vérifie ta connexion.');
+        if (active) setQuoteError(error.name==='AbortError'?'Le calcul a pris trop de temps. Réessaie.':error.message);
       }
     }, 250);
     return () => { active = false; clearTimeout(timer); };
-  }, [from,to,category,womenOnly]);
+  }, [from,to,category,womenOnly,quoteAttempt]);
 
   async function confirmRide() {
     if (!session) {setPage('account');setNotice('Connecte-toi pour confirmer ta demande.');return}
+    if (!estimate) throw new Error('Le montant doit être recalculé avant de commander.');
     await request('rides/request',{...ridePayload(),immediate:true,expectedTotal:estimate.total},session);
     setEstimate(null);setPage('trips');setNotice('Demande envoyée.');
     await refresh();
@@ -157,10 +165,17 @@ export default function App() {
     await refresh();
   }
 
+  function confirmCancellation(ride) {
+    Alert.alert('Annuler cette course ?', `${ride.from} → ${ride.to}`, [
+      {text:'Garder la course',style:'cancel'},
+      {text:'Annuler la course',style:'destructive',onPress:()=>run(()=>updateRide('cancel',ride.id))},
+    ]);
+  }
+
   function rideCard(ride, isAvailable = false) {
     const isClient = ride.ownerId===account?.id;
     const isDriver = ride.driverId===account?.id;
-    return <View key={ride.id} style={styles.card}><Text style={styles.label}>{statuses[ride.status]}{ride.womenOnly ? ' · Spécial femme' : ''}</Text><Text style={styles.cardTitle}>{ride.from} → {ride.to}</Text><Text style={styles.body}>{ride.immediate?'Départ immédiat':inKinshasa(ride.departure)} · {fare(ride.total)}</Text>{ride.driverName && <Text style={styles.body}>Chauffeur · {ride.driverName}</Text>}{isAvailable && <Button disabled={busy} onPress={()=>run(()=>updateRide('accept',ride.id))}>Accepter</Button>}{isClient && ['requested','accepted'].includes(ride.status) && <Button secondary disabled={busy} onPress={()=>run(()=>updateRide('cancel',ride.id))}>Annuler la demande</Button>}{isDriver && ride.status==='accepted' && <Button disabled={busy} onPress={()=>run(()=>updateRide('complete',ride.id))}>Terminer la course</Button>}{isClient && ride.status==='completed' && (ride.rating ? <Text style={styles.body}>Note · {ride.rating}/5</Text> : <Choice label="Noter le véhicule" value="Choisir une note" options={['1','2','3','4','5']} onChange={value=>run(()=>updateRide('rate',ride.id,{rating:Number(value)}))}/>)}</View>;
+    return <View key={ride.id} style={styles.card}><Text style={styles.label}>{statuses[ride.status]}{ride.womenOnly ? ' · Spécial femme' : ''}</Text><Text style={styles.cardTitle}>{ride.from} → {ride.to}</Text><Text style={styles.body}>{ride.immediate?'Départ immédiat':inKinshasa(ride.departure)} · {fare(ride.total)}</Text>{ride.driverName && <Text style={styles.body}>Chauffeur · {ride.driverName}</Text>}{isAvailable && <Button disabled={busy} onPress={()=>run(()=>updateRide('accept',ride.id))}>Accepter</Button>}{isClient && ['requested','accepted'].includes(ride.status) && <Button secondary disabled={busy} onPress={()=>confirmCancellation(ride)}>Annuler la demande</Button>}{isDriver && ride.status==='accepted' && <Button disabled={busy} onPress={()=>run(()=>updateRide('complete',ride.id))}>Terminer la course</Button>}{isClient && ride.status==='completed' && (ride.rating ? <Text style={styles.body}>Note · {ride.rating}/5</Text> : <Choice label="Noter le véhicule" value="Choisir une note" options={['1','2','3','4','5']} onChange={value=>run(()=>updateRide('rate',ride.id,{rating:Number(value)}))}/>)}</View>;
   }
 
   return <SafeAreaProvider><SafeAreaView style={styles.screen}><KeyboardAvoidingView style={styles.screen} behavior={Platform.OS==='ios'?'padding':undefined}>
@@ -176,12 +191,12 @@ export default function App() {
         <Choice label="Catégorie" value={categories[category]} options={Object.values(categories)} onChange={value=>resetEstimate(setCategory,Object.keys(categories).find(key=>categories[key]===value))}/>
         <Pressable style={styles.choice} accessibilityRole="checkbox" accessibilityState={{checked:womenOnly}} onPress={()=>resetEstimate(setWomenOnly,!womenOnly)}><Text style={styles.choiceText}>{womenOnly ? '✓' : '○'}  Spécial femme</Text></Pressable>
         {womenOnly && <Text style={styles.body}>Je confirme être une passagère. La course est proposée à des conductrices.</Text>}
-        {estimate ? <View style={styles.price}><Text style={styles.label}>Prix estimé</Text><Text style={styles.amount}>{fare(estimate.total)}</Text><Text style={styles.body}>{estimate.km} km · {estimate.minutes} min environ</Text></View> : <Text style={styles.body}>Calcul du prix…</Text>}
+        {estimate ? <View style={styles.price}><Text style={styles.label}>Prix estimé</Text><Text style={styles.amount}>{fare(estimate.total)}</Text><Text style={styles.body}>{estimate.km} km · {estimate.minutes} min environ</Text></View> : quoteError ? <View style={styles.field}><Text accessibilityRole="alert" style={styles.error}>{quoteError}</Text><Button secondary disabled={busy} onPress={()=>setQuoteAttempt(value=>value+1)}>Réessayer le calcul</Button></View> : <Text accessibilityLiveRegion="polite" style={styles.body}>Calcul du prix…</Text>}
         <Text style={styles.body}>Départ immédiat. Version de test sans encaissement.</Text>
         <Button disabled={busy || !estimate} onPress={()=>run(confirmRide)}>{session?'Commander maintenant':'Se connecter pour commander'}</Button>
       </View></>}
       {page==='trips' && <><Text accessibilityRole="header" style={styles.heading}>Mes trajets</Text>{!session ? <View style={styles.card}><Text style={styles.body}>Connecte-toi pour retrouver tes demandes.</Text><Button onPress={()=>navigate('account')}>Se connecter</Button></View> : <><Button secondary disabled={busy} onPress={()=>run(()=>refresh())}>Actualiser</Button>{available.length>0 && <><Text style={styles.subheading}>Demandes disponibles</Text>{available.map(ride=>rideCard(ride,true))}</>}{rides.length ? rides.map(ride=>rideCard(ride)) : <Text style={styles.body}>Aucune course pour le moment.</Text>}</>}</>}
-      {page==='account' && <><Text accessibilityRole="header" style={styles.heading}>Mon compte</Text><View style={styles.card}>{account ? <><Text style={styles.cardTitle}>{account.name}</Text><Text style={styles.body}>{account.email}</Text><Button secondary disabled={busy} onPress={()=>run(async()=>{try {await request('logout',{},session)} finally {await forgetSession()}})}>Se déconnecter</Button></> : <><Text style={styles.body}>Utilise ton compte En Route existant.</Text><Field label="Adresse e-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email"/><Field label="Mot de passe" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password"/><Button disabled={busy} onPress={()=>run(login)}>Se connecter</Button></>}</View></>}
+      {page==='account' && <><Text accessibilityRole="header" style={styles.heading}>Mon compte</Text><View style={styles.card}>{account ? <><Text style={styles.cardTitle}>{account.name}</Text><Text style={styles.body}>{account.email}</Text><Button secondary disabled={busy} onPress={()=>run(async()=>{try {await request('logout',{},session)} finally {await forgetSession()}})}>Se déconnecter</Button></> : <><Text style={styles.body}>Utilise ton compte En Route existant.</Text><Field label="Adresse e-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email"/><Field label="Mot de passe" value={password} onChangeText={setPassword} secureTextEntry={!passwordVisible} autoCapitalize="none" autoCorrect={false} autoComplete="current-password"/><Button secondary disabled={busy} onPress={()=>setPasswordVisible(value=>!value)}>{passwordVisible?'Masquer le mot de passe':'Afficher le mot de passe'}</Button><Button disabled={busy} onPress={()=>run(login)}>Se connecter</Button></>}</View></>}
       {busy && <ActivityIndicator accessibilityLabel="Chargement" color={ink}/>}
     </ScrollView>
   </KeyboardAvoidingView></SafeAreaView></SafeAreaProvider>;
