@@ -29,3 +29,8 @@ La commande immédiate fonctionne sans compte : nom et téléphone obligatoires,
 6. Avec ce chauffeur, accepter, terminer, puis noter le véhicule depuis le compte passager.
 
 Aucun SMS de validation, service cartographique routier ni paiement marchand n’est connecté. La photo ne constitue pas une vérification d’identité. La mise en exploitation commerciale demande aussi les essais réels, les documents de confidentialité adaptés et la validation des dossiers chauffeurs.
+
+## Mise à jour 1.1 : carte et suivi GPS
+Voir mobile/README.md pour le test à deux téléphones. Les mêmes positions de course sont partagées entre le site et l’application. Seul le chauffeur validé affecté à une course acceptée peut les transmettre ; le passager concerné et les administrateurs peuvent les consulter. Le suivi utilise une actualisation périodique d’environ 5 secondes, au premier plan, et masque les positions trop anciennes. Il ne simule ni le déplacement ni le trafic.
+
+Après une modification des dépendances mobile : ouvrir le dossier mobile dans un terminal, exécuter npm ci, puis npm run start:tunnel -- --clear. Une application native déjà installée doit être reconstruite pour inclure de nouveaux modules. Les modifications de source seules ne mettent pas automatiquement à jour un binaire installé.

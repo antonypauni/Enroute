@@ -1,4 +1,8 @@
-import {useEffect, useState} from 'react';
+import RideMap from './RideMap';
+import DriverTracking from './DriverTracking';
+import {centers,inServiceArea,closestCommune} from './places';
+import * as Location from 'expo-location';
+import {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {StatusBar} from 'expo-status-bar';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
@@ -46,6 +50,9 @@ function Choice({label, value, options, onChange}) {
 }
 
 export default function App() {
+  const [pickupPoint,setPickupPoint]=useState(null);
+  const [destinationPoint,setDestinationPoint]=useState(null);
+  const [mapTarget,setMapTarget]=useState('pickup');
   const [page, setPage] = useState('ride');
   const [session, setSession] = useState(null);
   const [account, setAccount] = useState(null);
@@ -77,6 +84,10 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const sendLocation=useCallback((path,data)=>request(path,data,session),[session]);
+  async function useGPS(){const permission=await Location.requestForegroundPermissionsAsync();if(permission.status!=='granted')throw Error('Localisation refusée. Choisis ton départ sur la carte.');let timeout;let position;try{position=await Promise.race([Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}),new Promise((_,reject)=>{timeout=setTimeout(()=>reject(Error('Le GPS ne répond pas. Choisis ton départ sur la carte.')),20000)})])}finally{clearTimeout(timeout)}if(!Number.isFinite(position.coords.accuracy)||position.coords.accuracy>100)throw Error('Signal GPS imprécis. Choisis le départ sur la carte.');selectMapPoint('pickup',[position.coords.latitude,position.coords.longitude]);}
+  function selectMapPoint(target,point){if(!inServiceArea(point))throw Error('Choisis un point dans la zone de Kinshasa.');if(target==='pickup'){setPickupPoint(point);setFrom(closestCommune(point))}else{setDestinationPoint(point);setTo(closestCommune(point))}setEstimate(null);setQuoteAttempt(value=>value+1)}
 
   async function forgetSession() {
     setSession(null); setAccount(null); setRides([]); setAvailable([]);
@@ -158,7 +169,7 @@ export default function App() {
   }
 
   function resetEstimate(setter, value) { setter(value); setEstimate(null); }
-  function ridePayload() {return {from,to,category,passengers,womenOnly,passengerGender:womenOnly?'woman':undefined};}
+  function ridePayload() {return {from,to,pickupPoint,destinationPoint,category,passengers,womenOnly,passengerGender:womenOnly?'woman':undefined};}
 
   useEffect(() => {
     let active = true;
@@ -242,24 +253,24 @@ export default function App() {
   function rideCard(ride, isAvailable = false) {
     const isClient = ride.ownerId===account?.id;
     const isDriver = ride.driverId===account?.id;
-    return <View key={ride.id} style={styles.card}><Text style={styles.label}>{statuses[ride.status]}{ride.womenOnly ? ' · Spécial femme' : ''}</Text><Text style={styles.cardTitle}>{ride.from} → {ride.to}</Text><Text style={styles.body}>{ride.immediate?'Départ immédiat':inKinshasa(ride.departure)} · {fare(ride.total)}</Text><Text style={styles.body}>Départ · {ride.pickupLandmark||ride.from}</Text><Text style={styles.body}>Arrivée · {ride.destinationLandmark||ride.to}</Text><Text style={styles.body}>{ride.passengers||1} passager{(ride.passengers||1)>1?'s':''}</Text>{ride.passengerName&&<Text style={styles.body}>Client · {ride.passengerName}</Text>}{ride.passengerPhone&&<Button secondary onPress={()=>Linking.openURL('tel:'+ride.passengerPhone).catch(()=>setError('Impossible d’ouvrir le téléphone.'))}>Appeler {ride.passengerPhone}</Button>}{(ride.photoKey||ride.passengerPhoto)&&<><Button secondary disabled={busy} onPress={()=>run(async()=>{const photo=await request('rides/photo',{id:ride.id},session);setRidePhotos(previous=>({...previous,[ride.id]:photo.data}))})}>Voir la photo</Button>{ridePhotos[ride.id]&&<Image accessibilityLabel="Photo fournie par le client" source={{uri:ridePhotos[ride.id]}} style={{width:80,height:80,borderRadius:40}}/>}</>}{ride.driverName && <Text style={styles.body}>Chauffeur · {ride.driverName}</Text>}{isAvailable && <Button disabled={busy} onPress={()=>run(()=>updateRide('accept',ride.id))}>Accepter</Button>}{isClient && ['requested','accepted'].includes(ride.status) && <Button secondary disabled={busy} onPress={()=>confirmCancellation(ride)}>Annuler la demande</Button>}{isDriver && ride.status==='accepted' && <Button disabled={busy} onPress={()=>run(()=>updateRide('complete',ride.id))}>Terminer la course</Button>}{isClient && ride.status==='completed' && (ride.rating ? <Text style={styles.body}>Note · {ride.rating}/5</Text> : <Choice label="Noter le véhicule" value="Choisir une note" options={['1','2','3','4','5']} onChange={value=>run(()=>updateRide('rate',ride.id,{rating:Number(value)}))}/>)}</View>;
+    return <View key={ride.id} style={styles.card}><Text style={styles.label}>{statuses[ride.status]}{ride.womenOnly ? ' · Spécial femme' : ''}</Text><Text style={styles.cardTitle}>{ride.from} → {ride.to}</Text><Text style={styles.body}>{ride.immediate?'Départ immédiat':inKinshasa(ride.departure)} · {fare(ride.total)}</Text><Text style={styles.body}>Départ · {ride.pickupLandmark||ride.from}</Text>{['requested','accepted'].includes(ride.status)&&!isAvailable&&<RideMap pickup={ride.pickupPoint||centers[ride.from]} destination={ride.destinationPoint||centers[ride.to]} driver={ride.driverLocation?.point}/>} {ride.status==='accepted'&&<Text style={styles.body}>{ride.locationStatus==='live'?'GPS reçu à '+new Date(ride.driverLocation.receivedAt).toLocaleTimeString('fr-FR')+' · précision '+ride.driverLocation.accuracy+' m':ride.locationStatus==='stale'?'Position du chauffeur non actualisée.':'En attente du partage GPS du chauffeur.'}</Text>}{isDriver&&ride.status==='accepted'&&<DriverTracking rideId={ride.id} send={sendLocation}/>} <Text style={styles.body}>Arrivée · {ride.destinationLandmark||ride.to}</Text><Text style={styles.body}>{ride.passengers||1} passager{(ride.passengers||1)>1?'s':''}</Text>{ride.passengerName&&<Text style={styles.body}>Client · {ride.passengerName}</Text>}{ride.passengerPhone&&<Button secondary onPress={()=>Linking.openURL('tel:'+ride.passengerPhone).catch(()=>setError('Impossible d’ouvrir le téléphone.'))}>Appeler {ride.passengerPhone}</Button>}{(ride.photoKey||ride.passengerPhoto)&&<><Button secondary disabled={busy} onPress={()=>run(async()=>{const photo=await request('rides/photo',{id:ride.id},session);setRidePhotos(previous=>({...previous,[ride.id]:photo.data}))})}>Voir la photo</Button>{ridePhotos[ride.id]&&<Image accessibilityLabel="Photo fournie par le client" source={{uri:ridePhotos[ride.id]}} style={{width:80,height:80,borderRadius:40}}/>}</>}{ride.driverName && <Text style={styles.body}>Chauffeur · {ride.driverName}</Text>}{isAvailable && <Button disabled={busy} onPress={()=>run(()=>updateRide('accept',ride.id))}>Accepter</Button>}{isClient && ['requested','accepted'].includes(ride.status) && <Button secondary disabled={busy} onPress={()=>confirmCancellation(ride)}>Annuler la demande</Button>}{isDriver && ride.status==='accepted' && <Button disabled={busy} onPress={()=>run(()=>updateRide('complete',ride.id))}>Terminer la course</Button>}{isClient && ride.status==='completed' && (ride.rating ? <Text style={styles.body}>Note · {ride.rating}/5</Text> : <Choice label="Noter le véhicule" value="Choisir une note" options={['1','2','3','4','5']} onChange={value=>run(()=>updateRide('rate',ride.id,{rating:Number(value)}))}/>)}</View>;
   }
 
   return <SafeAreaProvider><SafeAreaView style={styles.screen}><KeyboardAvoidingView style={styles.screen} behavior={Platform.OS==='ios'?'padding':undefined}>
     <StatusBar style="dark" />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       <Text style={styles.brand}>En Route <Text style={styles.arrow}>↗</Text></Text>
-      <View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']]).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
+      <Text style={{color:muted,fontSize:11}}>Version 1.1 · Carte et suivi GPS</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']]).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {notice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
       {page==='ride' && <><View style={styles.hero}><Text style={styles.heroLabel}>KINSHASA</Text><Text accessibilityRole="header" style={styles.heroTitle}>Où vas-tu ?</Text><Text style={styles.heroSubtitle}>Ta ville. Ton rythme. Ta prochaine course.</Text><View style={styles.heroPill}><Text style={styles.heroPillText}>↗  Commande directe · Sans compte obligatoire</Text></View></View><View style={styles.card}>
-        <Field label="Ton nom" value={passengerName} onChangeText={setPassengerName} maxLength={60} autoComplete="name"/>
+        <Choice label="Point à placer sur la carte" value={mapTarget==='pickup'?'Départ':'Arrivée'} options={['Départ','Arrivée']} onChange={value=>setMapTarget(value==='Départ'?'pickup':'destination')}/><RideMap pickup={pickupPoint||centers[from]} destination={destinationPoint||centers[to]} selectTarget={mapTarget} onPoint={(target,point)=>{try{selectMapPoint(target,point)}catch(error){setError(error.message)}}}/><Text style={styles.body}>Touche la carte pour fixer {mapTarget==='pickup'?'ton départ':'ton arrivée'} précis. Les points verts et dorés représentent le départ et l’arrivée.</Text><Button secondary disabled={busy} onPress={()=>run(useGPS)}>Utiliser mon GPS pour le départ</Button><Field label="Ton nom" value={passengerName} onChangeText={setPassengerName} maxLength={60} autoComplete="name"/>
         <Field label="Numéro de portable" value={passengerPhone} onChangeText={setPassengerPhone} keyboardType="phone-pad" autoComplete="tel" maxLength={30} placeholder="+243…"/>
         <Button secondary disabled={busy} onPress={()=>run(choosePassengerPhoto)}>{passengerPhoto?'Changer la photo':'Ajouter une photo (facultatif)'}</Button>
         {passengerPhoto&&<View style={styles.field}><Image accessibilityLabel="Ta photo facultative" source={{uri:passengerPhoto}} style={{width:80,height:80,borderRadius:40}}/><Button secondary onPress={()=>setPassengerPhoto(null)}>Retirer la photo</Button></View>}
-        <Choice label="Départ" value={from} options={communes} onChange={value=>resetEstimate(setFrom,value)}/>
+        <Choice label="Départ" value={from} options={communes} onChange={value=>{setPickupPoint(null);resetEstimate(setFrom,value)}}/>
         <Field label="Lieu précis de départ" value={pickupLandmark} onChangeText={setPickupLandmark} maxLength={120} placeholder="Quartier, avenue, numéro ou repère"/>
-        <Choice label="Destination" value={to} options={communes} onChange={value=>resetEstimate(setTo,value)}/>
+        <Choice label="Destination" value={to} options={communes} onChange={value=>{setDestinationPoint(null);resetEstimate(setTo,value)}}/>
         <Field label="Lieu précis d’arrivée" value={destinationLandmark} onChangeText={setDestinationLandmark} maxLength={120} placeholder="Quartier, avenue, numéro ou repère"/>
         <Text style={styles.label}>Choisis ta voiture</Text><View style={styles.categoryRow}>{Object.entries(categories).map(([id,title])=><Pressable key={id} accessibilityRole="button" accessibilityState={{selected:category===id}} onPress={()=>{resetEstimate(setCategory,id);setPassengers(count=>Math.min(count,id==='xl'?6:4))}} style={[styles.categoryCard,category===id&&styles.categorySelected]}><Text style={styles.categoryArrow}>↗</Text><Text style={styles.categoryTitle}>{title}</Text><Text style={styles.categorySeats}>{id==='xl'?'6':'4'} places</Text></Pressable>)}</View>
         <Choice label="Passagers" value={`${passengers} passager${passengers>1?'s':''}`} options={Array.from({length:category==='xl'?6:4},(_,index)=>`${index+1} passager${index?'s':''}`)} onChange={value=>resetEstimate(setPassengers,Number.parseInt(value,10))}/>

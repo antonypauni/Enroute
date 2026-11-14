@@ -1,0 +1,4 @@
+En Route 1.1 — 14 novembre 2026
+Carte mobile et web, choix des points précis, suivi GPS au premier plan pendant une course.
+29 tests automatisés réussis.
+Essais GPS à deux téléphones et builds signés nécessaires avant publication commerciale.

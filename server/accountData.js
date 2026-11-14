@@ -19,6 +19,7 @@ export function deleteClientData(state, user) {
   for (const ride of state.rides) {
     if (ride.driverId === user.id) {
       delete ride.driverId;
+      delete ride.driverLocation;
       delete ride.driverName;
       if (ride.status === 'accepted') ride.status = 'cancelled';
     }

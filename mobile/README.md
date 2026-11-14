@@ -33,3 +33,14 @@ Vérifier les builds signés sur des appareils réels, préparer les captures et
 Si le QR code local est inaccessible, tester le mode tunnel avec `npx expo start --tunnel ngrok`. Selon la version d’Expo Go, une connexion au même compte Expo sur l’ordinateur et le téléphone peut être nécessaire.
 
 La photo est facultative. La connexion client et la création de compte sont facultatives et transfèrent les courses de la session invitée courante. L’administration dispose d’un accès distinct. Une session invitée est liée à cet appareil : associez-la à un compte avant de vous déconnecter pour conserver son historique.
+
+## Carte et GPS — version 1.1
+La carte est accessible directement sur l’écran Course : choisir Départ ou Arrivée puis toucher la carte. Le bouton GPS demande uniquement la localisation au premier plan. Les centres des communes servent de repères approximatifs avant sélection d’un point précis. Le prix reste une estimation entre communes, sans trafic routier.
+
+Pour vérifier le suivi, utiliser deux appareils avec Internet : un passager qui commande et un chauffeur enregistré et validé qui accepte. Sur l’appareil chauffeur, ouvrir Mes trajets puis Partager mon GPS avec le passager et autoriser la localisation. Sur l’appareil passager, ouvrir Mes trajets : le marqueur bleu affiche les positions reçues. Le rafraîchissement est d’environ cinq secondes, selon le signal GPS et le réseau. Une position non actualisée depuis plus de trente secondes est masquée.
+
+Garder l’application au premier plan. Le partage s’arrête si elle passe en arrière-plan, si l’écran de la course est quitté ou si la course est terminée/annulée. Cette version ne fournit pas de suivi GPS en arrière-plan. Aucun déplacement fictif n’est généré.
+
+Le fond de carte utilise les tuiles OpenStreetMap et charge Leaflet depuis unpkg. Une connexion Internet est requise. Aucun compte Google Maps n’est nécessaire pour cette carte. Pour un trafic commercial important, configurer un fournisseur de tuiles adapté et ses conditions d’utilisation. Les permissions et l’affichage doivent être validés sur les téléphones avant publication en boutique.
+
+État des outils de développement : cinq avis de sécurité modérés restent signalés par npm dans la chaîne Expo/ngrok. Les mises à jour compatibles du SDK ont été appliquées ; aucune rétrogradation majeure forcée n’a été effectuée. Réexaminer les versions corrigées avant mise en boutique.

@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "En Route — Mobile (QR code)",
+      "type": "shell",
+      "command": "npm.cmd",
+      "args": [
+        "run",
+        "start:tunnel",
+        "--",
+        "--clear"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/mobile"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "En Route — Tests serveur",
+      "type": "shell",
+      "command": "npm.cmd",
+      "args": [
+        "test"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

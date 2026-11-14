@@ -87,4 +87,24 @@ await test('photo privée et conservation des courses après inscription invité
  assert.equal((await call('/api/account/delete',{password:'Strong-test-pass-123'},undefined,client.data.token)).status,200);
  assert.equal(files.has(ride.data.photoKey),false);
 });
+
+
+await test('GPS mobile du chauffeur, lecture du passager et arrêt de partage',async()=>{
+ const driver=await call('/api/mobile/login',{email:'driver@example.test',password:'Strong-test-pass-123'});
+ const guest=await call('/api/guest/session',{mobile:true});
+ const form={from:'Lemba',to:'Gombe',category:'comfort',passengerName:'Test GPS',passengerPhone:'0812345678',pickupPoint:[-4.41,15.33],destinationPoint:[-4.30,15.31],immediate:true};
+ const quote=await call('/api/rides/quote',form);
+ const ride=await call('/api/rides/request',{...form,expectedTotal:quote.data.total},undefined,guest.data.token);
+ assert.equal(ride.status,200);assert.deepEqual(ride.data.pickupPoint,form.pickupPoint);
+ assert.equal((await call('/api/rides/accept',{id:ride.data.id},undefined,driver.data.token)).status,200);
+ const gps={id:ride.data.id,point:[-4.35,15.32],accuracy:12,timestamp:Date.now()};
+ assert.equal((await call('/api/rides/location',gps,undefined,guest.data.token)).status,400);
+ assert.equal((await call('/api/rides/location',gps,undefined,driver.data.token)).status,200);
+ const list=await call('/api/rides/state',undefined,undefined,guest.data.token);
+ assert.deepEqual(list.data.rides[0].driverLocation.point,gps.point);
+ assert.equal((await call('/api/rides/location/stop',{id:ride.data.id},undefined,driver.data.token)).status,200);
+ assert.equal((await call('/api/rides/state',undefined,undefined,guest.data.token)).data.rides[0].driverLocation,null);
+ assert.equal((await call('/api/rides/cancel',{id:ride.data.id},undefined,guest.data.token)).status,200);
+ assert.equal((await call('/api/rides/location',{...gps,timestamp:Date.now()},undefined,driver.data.token)).status,400);
+});
 db.close();
