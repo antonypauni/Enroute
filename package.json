@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test server/*.test.js",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "start:tunnel": "npm --prefix mobile run start:tunnel --"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

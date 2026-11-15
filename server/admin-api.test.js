@@ -36,6 +36,27 @@ try {await test('serveur Node : administration mobile, affectation et révocatio
  assert.equal((await call('mobile/login',{email:'client@test.example',password})).status,200);
  const overview=await call('admin/overview',undefined,admin.data.token);assert.ok(overview.data.audit.some(event=>event.action==='ride.assign'));
  assert.equal(overview.data.users[0].hash,undefined);
+});
+await test('compte chauffeur créé au dépôt, session invitée transférée et dossier non validé automatiquement',async()=>{
+ const admin=await call('mobile/admin/login',{email:'admin@test.example',password:'Administrative-test-123'});
+ const guest=await call('guest/session',{mobile:true});
+ const form={from:'Lemba',to:'Gombe',category:'standard',passengerName:'Chauffeur futur',passengerPhone:'0812345678',immediate:true};
+ const estimate=await call('rides/quote',form);const ride=await call('rides/request',{...form,expectedTotal:estimate.data.total},guest.data.token);
+ const documents=Object.fromEntries(['identity','license','registration','insurance'].map(key=>[key,'data:application/pdf;base64,JVBERg==']));
+ const payload={name:'Chauffeur automatique',email:'driver-auto@test.example',phone:'0812345678',password:'Driver-auto-pass-123',confirm:'Driver-auto-pass-123',gender:'woman',owner:'Propriétaire test',car:'Voiture test',plate:'AUTO-1',category:'standard',documents,mobile:true,status:'approved'};
+ assert.equal((await call('drivers/register',{...payload,role:'primary'})).status,400);
+ assert.equal((await call('drivers/register',{...payload,confirm:'incorrect'})).status,400);
+ const created=await call('drivers/register',payload,guest.data.token);assert.equal(created.status,200);
+ assert.equal(created.data.user.role,'client');assert.equal(created.data.user.accountType,'driver');assert.equal(created.data.application.status,'pending');
+ assert.equal((await call('state',undefined,guest.data.token)).status,401);
+ const own=await call('rides/state',undefined,created.data.token);assert.equal(own.data.application.status,'pending');assert.equal(own.data.application.documents,undefined);assert.ok(own.data.rides.some(item=>item.id===ride.data.id));
+ assert.equal((await call('rides/accept',{id:ride.data.id},created.data.token)).status,400);
+ assert.equal((await call('drivers/register',payload)).status,400);
+ assert.equal((await call('mobile/login',{email:payload.email,password:payload.password})).data.user.accountType,'driver');
+ assert.equal((await call('drivers/resubmit',payload,created.data.token)).status,200);
+ assert.equal((await call('admin/manage',{action:'driver.status',id:created.data.user.id,status:'approved',documentRevision:1,note:'Documents contrôlés'},admin.data.token)).status,400);
+ assert.equal((await call('admin/manage',{action:'driver.status',id:created.data.user.id,status:'approved',documentRevision:2,note:'Documents contrôlés'},admin.data.token)).status,200);
+ assert.equal((await call('drivers/resubmit',payload,created.data.token)).status,400);
 });} finally {
  await new Promise(resolve=>server.close(resolve));
  if(resolve(folder).startsWith(resolve(tmpdir())+sep)&&basename(folder).startsWith('enroute-admin-'))await rm(folder,{recursive:true,force:true});

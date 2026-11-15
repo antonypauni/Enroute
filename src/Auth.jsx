@@ -22,7 +22,7 @@ export function Auth({setup,audience='client',onDone,onClose}) {
   return <div className="overlay"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
     <button className="close" onClick={onClose} aria-label="Fermer">×</button>
     <div className="eyebrow">EN ROUTE · {admin?'ADMINISTRATION':'ESPACE CLIENT'}</div>
-    <h2 id="auth-title">{setup?'Configurer l’administrateur':register?'Créer mon compte client':admin?'Connexion administrateur':'Connexion client'}</h2>
+    <h2 id="auth-title">{setup?'Configurer l’administrateur':register?'Créer mon compte client':admin?'Connexion administrateur':'Connexion client ou chauffeur'}</h2>
     <form onSubmit={submit}>
       {(setup||register)&&<label>Votre nom<input name="name" autoComplete="name" minLength="2" maxLength="60" required/></label>}
       <label>Adresse e-mail<input name="email" type="email" autoComplete="email" maxLength="180" required/></label>

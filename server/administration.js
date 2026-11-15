@@ -13,7 +13,7 @@ export function recordAdminEvent(state,user,action,target,note) {
 
 export function adminOverview(state) {
   return {
-    users:(state.users||[]).map(({id,name,email,role,blocked})=>({id,name,email,role,blocked:!!blocked})),
+    users:(state.users||[]).map(({id,name,email,role,blocked,accountType})=>({id,name,email,role,accountType:accountType||((state.drivers||[]).some(driver=>driver.id===id)?'driver':role==='client'?'client':'admin'),blocked:!!blocked})),
     guests:(state.guests||[]).map(({id,name,createdAt})=>({id,name,createdAt})),
     trips:state.trips||[],bookings:state.bookings||[],
     rides:(state.rides||[]).map(ride=>rideForViewer(ride)),
@@ -64,6 +64,7 @@ export function manageAdmin(state,input,user) {
     const account=requiredItem(state.users,driver.id,'Compte chauffeur');
     if(account.blocked&&input.status==='approved')throw Error('Réactivez le compte avant de valider ce chauffeur.');
     if(input.status!=='approved'&&activeRideFor(state,driver.id))throw Error('Réaffectez ou clôturez la course en cours avant de suspendre ce chauffeur.');
+    if(input.status==='approved'&&input.documentRevision!==undefined&&input.documentRevision!==(driver.documentRevision||0))throw Error('Le dossier a changé. Rechargez et vérifiez les nouveaux documents avant validation.');
     if(input.status==='approved'&&!['identity','license','registration','insurance'].every(key=>driver.documents?.[key]))throw Error('Les quatre pièces du dossier sont nécessaires.');
     driver.status=input.status;driver.reviewNote=note;
   } else if(action==='driver.vehicle') {

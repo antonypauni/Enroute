@@ -1,5 +1,5 @@
-En Route 1.2 — 15 novembre 2026
-Administration web et mobile : demandes, chauffeurs, clients, trajets, réservations, tarifs, équipe et journal.
-Carte et GPS au premier plan conservés. Paiement marchand non connecté.
-36 tests automatisés réussis. Exports Android et iOS vérifiés.
-Essais physiques et builds signés nécessaires avant publication en boutique.
+En Route 1.3 — 15 novembre 2026
+Compte chauffeur et dossier créés ensemble à l’envoi ; validation admin obligatoire.
+Dépôt et remplacement des quatre documents privés sur web et mobile.
+43 tests automatisés réussis. Exports JavaScript Android et iOS réussis.
+Paiements non connectés ; essais physiques et signature boutique restent nécessaires.

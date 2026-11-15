@@ -135,4 +135,51 @@ await test('administration Cloud : affectation, accès mobile, prix et comptes',
  assert.equal(overview.data.payments.enabled,false);
  assert.equal((await call('/api/drivers/document',{id:driver.data.user.id,kind:'license'},undefined,admin.data.token)).status,200);
 });
+
+
+await test('inscription chauffeur atomique, documents privés et doublons contrôlés',async()=>{
+ const documents=Object.fromEntries(['identity','license','registration','insurance'].map(key=>[key,'data:application/pdf;base64,JVBERg==']));
+ const payload={name:'Chauffeur automatique',email:'auto-driver@example.test',phone:'0812345678',password:'Auto-driver-pass-123',confirm:'Auto-driver-pass-123',gender:'woman',owner:'Propriétaire test',car:'Voiture test',plate:'AUTO-1',category:'standard',documents,mobile:true,status:'approved'};
+ const before=JSON.parse(db.prepare('SELECT data FROM enroute_state WHERE id=1').get().data);
+ assert.equal((await call('/api/drivers/register',{...payload,role:'primary'})).status,400);
+ assert.equal((await call('/api/drivers/register',{...payload,documents:{...documents,insurance:undefined}})).status,400);
+ assert.equal(JSON.parse(db.prepare('SELECT data FROM enroute_state WHERE id=1').get().data).users.length,before.users.length);
+ const guest=await call('/api/guest/session',{mobile:true});
+ const created=await call('/api/drivers/register',payload,undefined,guest.data.token);assert.equal(created.status,200);
+ assert.equal(created.data.user.accountType,'driver');assert.equal(created.data.user.role,'client');assert.equal(created.data.application.status,'pending');
+ assert.equal((await call('/api/state',undefined,undefined,guest.data.token)).status,401);
+ const own=await call('/api/rides/state',undefined,undefined,created.data.token);assert.equal(own.data.application.phone,'+243812345678');assert.equal(own.data.application.documents,undefined);
+ let stored=JSON.parse(db.prepare('SELECT data FROM enroute_state WHERE id=1').get().data);const driver=stored.drivers.find(driver=>driver.id===created.data.user.id);
+ const oldKeys=Object.values(driver.documents).map(file=>file.key);assert.ok(oldKeys.every(key=>files.has(key)));
+ assert.equal((await call('/api/admin/overview',undefined,undefined,created.data.token)).status,403);
+ const login=await call('/api/mobile/login',{email:payload.email,password:payload.password});assert.equal(login.status,200);assert.equal(login.data.user.accountType,'driver');
+ assert.equal((await call('/api/drivers/register',payload)).status,400);
+ assert.equal((await call('/api/drivers/resubmit',payload,undefined,created.data.token)).status,200);
+ assert.ok(oldKeys.every(key=>!files.has(key)));
+ stored=JSON.parse(db.prepare('SELECT data FROM enroute_state WHERE id=1').get().data);assert.equal(stored.drivers.find(driver=>driver.id===created.data.user.id).documentRevision,2);
+ const browser=await call('/api/drivers/register',{...payload,email:'browser-driver@example.test',mobile:false});assert.equal(browser.status,200);assert.ok(browser.cookie);assert.equal(browser.data.token,undefined);assert.equal((await call('/api/state',undefined,browser.cookie)).data.user.accountType,'driver');
+});
+await test('échec de stockage : aucun compte chauffeur ni fichier orphelin',async()=>{
+ const before=JSON.parse(db.prepare('SELECT data FROM enroute_state WHERE id=1').get().data),count=files.size;
+ const documents=Object.fromEntries(['identity','license','registration','insurance'].map(key=>[key,'data:application/pdf;base64,JVBERg==']));
+ const payload={name:'Test stockage',email:'failed-driver@example.test',phone:'0812345678',password:'Auto-driver-pass-123',confirm:'Auto-driver-pass-123',gender:'man',owner:'Propriétaire test',car:'Voiture test',plate:'FAIL',category:'standard',documents,mobile:true};
+ const original=env.BUCKET.put;let uploads=0;env.BUCKET.put=async(...args)=>{if(++uploads===2)throw Error('Échec de stockage fictif');return original(...args)};
+ try{assert.equal((await call('/api/drivers/register',payload)).status,400)}finally{env.BUCKET.put=original}
+ const after=JSON.parse(db.prepare('SELECT data FROM enroute_state WHERE id=1').get().data);assert.equal(after.users.length,before.users.length);assert.equal(after.drivers.length,before.drivers.length);assert.equal(files.size,count);
+});
+await test('deux dépôts simultanés ne créent pas deux comptes pour le même e-mail',async()=>{
+ const documents=Object.fromEntries(['identity','license','registration','insurance'].map(key=>[key,'data:application/pdf;base64,JVBERg==']));
+ const payload={name:'Dépôt concurrent',email:'concurrent-driver@example.test',phone:'0812345678',password:'Auto-driver-pass-123',confirm:'Auto-driver-pass-123',gender:'man',owner:'Propriétaire test',car:'Voiture test',plate:'CONCURRENT',category:'standard',documents,mobile:true};
+ const count=files.size;const responses=await Promise.all([call('/api/drivers/register',payload),call('/api/drivers/register',payload)]);assert.deepEqual(responses.map(result=>result.status).sort(),[200,400]);
+ const stored=JSON.parse(db.prepare('SELECT data FROM enroute_state WHERE id=1').get().data);assert.equal(stored.users.filter(user=>user.email===payload.email).length,1);assert.equal(files.size,count+4);
+});
+
+
+await test('dépôts concurrents indépendants : les deux comptes et documents sont conservés',async()=>{
+ const documents=Object.fromEntries(['identity','license','registration','insurance'].map(key=>[key,'data:application/pdf;base64,JVBERg==']));
+ const payload={name:'Dépôt indépendant',phone:'0812345678',password:'Auto-driver-pass-123',confirm:'Auto-driver-pass-123',gender:'man',owner:'Propriétaire test',car:'Voiture test',plate:'INDEPENDENT',category:'standard',documents,mobile:true};
+ const count=files.size;const responses=await Promise.all([call('/api/drivers/register',{...payload,email:'independent-driver-a@example.test'}),call('/api/drivers/register',{...payload,email:'independent-driver-b@example.test'})]);
+ assert.deepEqual(responses.map(result=>result.status),[200,200]);assert.equal(files.size,count+8);
+ for(const result of responses){const state=await call('/api/rides/state',undefined,undefined,result.data.token);assert.equal(state.data.application.status,'pending');assert.equal(state.data.application.documents,undefined)}
+});
 db.close();

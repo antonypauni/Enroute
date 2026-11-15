@@ -4,7 +4,7 @@ import {isAdmin} from '../server/access.js';
 export async function storeRequestFiles(env, state, path, result, user, cache) {
   async function store(label, value, types, limit) {
     if (cache.has(label)) return cache.get(label);
-    if (!env.BUCKET) throw Error('Le stockage privé des fichiers est indisponible. Réessayez sans photo.');
+    if (!env.BUCKET) throw Error('Le stockage privé des fichiers est indisponible. Réessayez plus tard.');
     const file = decodeFile(value, types, limit);
     const key = `private/${user.id}/${crypto.randomUUID()}`;
     await env.BUCKET.put(key, file.bytes, {httpMetadata:{contentType:file.mime}});
@@ -18,7 +18,7 @@ export async function storeRequestFiles(env, state, path, result, user, cache) {
     result.photoMime=file.mime;
     delete result.passengerPhoto;
   }
-  if (path === '/api/drivers/apply') {
+  if (['/api/drivers/apply','/api/drivers/resubmit'].includes(path)) {
     const driver = state.drivers.find(driver=>driver.id===user.id);
     for (const [kind,value] of Object.entries(driver.documents)) {
       driver.documents[kind] = await store(kind,value,['image/jpeg','image/png','application/pdf'],1000000);
