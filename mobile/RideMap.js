@@ -6,13 +6,14 @@ const html = `<!doctype html><html><head><meta name="viewport" content="width=de
 if(window.L){
 const map=L.map('map').setView([-4.36,15.32],12),markers=L.layerGroup().addTo(map);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
-let selection=null,lastBounds='';
+let selection=null,lastBounds='',driverPin=null,hadDriver=false;
 window.setRideMap=function(data){
 selection=data.selectTarget;markers.clearLayers();
-const pins=[[data.pickup,'Départ','#173e36'],[data.destination,'Arrivée','#b37527'],[data.driver,'Chauffeur · GPS','#2476bf']];
+const pins=[[data.pickup,'Départ','#173e36'],[data.destination,'Arrivée','#b37527']];
 pins.forEach(function(pin){if(pin[0])L.circleMarker(pin[0],{radius:9,color:'#fff',weight:3,fillColor:pin[2],fillOpacity:1}).bindTooltip(pin[1],{direction:'top',permanent:true}).addTo(markers)});
+if(data.driver){if(driverPin)driverPin.setLatLng(data.driver);else driverPin=L.circleMarker(data.driver,{radius:10,color:'#fff',weight:3,fillColor:'#2476bf',fillOpacity:1}).bindTooltip('Chauffeur · GPS',{direction:'top',permanent:true}).addTo(map);if(!hadDriver){map.fitBounds([data.pickup,data.destination,data.driver].filter(Boolean),{padding:[40,40],maxZoom:15});hadDriver=true}else if(!map.getBounds().contains(data.driver))map.panTo(data.driver)}else{if(driverPin)driverPin.remove();driverPin=null;hadDriver=false}
 const bounds=JSON.stringify([data.pickup,data.destination]);
-if(bounds!==lastBounds){lastBounds=bounds;const points=pins.map(p=>p[0]).filter(Boolean);if(points.length)map.fitBounds(points,{padding:[40,40],maxZoom:15});}
+if(bounds!==lastBounds){lastBounds=bounds;const points=[data.pickup,data.destination,data.driver].filter(Boolean);if(points.length)map.fitBounds(points,{padding:[40,40],maxZoom:15});}
 };
 map.on('click',function(e){if(selection)window.ReactNativeWebView.postMessage(JSON.stringify({type:'point',target:selection,point:[e.latlng.lat,e.latlng.lng]}));});
 window.ReactNativeWebView.postMessage(JSON.stringify({type:'ready'}));

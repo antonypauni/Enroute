@@ -1,9 +1,10 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {AppState,Pressable,Text,View} from 'react-native';
 import * as Location from 'expo-location';
 
-export default function DriverTracking({rideId,send}) {
-  const [sharing,setSharing]=useState(false);
+export default function DriverTracking({rideId,send,onPosition,autoStart=false}) {
+  const positionCallback=useRef(onPosition);positionCallback.current=onPosition;
+  const [sharing,setSharing]=useState(autoStart);
   const [status,setStatus]=useState('Le GPS est arrêté.');
   const [visibility,setVisibility]=useState(AppState.currentState);
   useEffect(()=>{const subscription=AppState.addEventListener('change',state=>{setVisibility(state);if(state!=='active')setSharing(false)});return()=>subscription.remove()},[]);
@@ -14,10 +15,10 @@ export default function DriverTracking({rideId,send}) {
       const permission=await Location.requestForegroundPermissionsAsync();
       if(!active)return;
       if(permission.status!=='granted')throw Error('Autorise la localisation pour partager ta position.');
-      const subscription=await Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:5000,distanceInterval:0},async position=>{
-        if(!active||pending||Date.now()-lastSent<5000)return;
+      const subscription=await Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:3000,distanceInterval:0},async position=>{
+        if(!active||pending||Date.now()-lastSent<3000)return;
         pending=true;lastSent=Date.now();
-        try{await send('rides/location',{id:rideId,point:[position.coords.latitude,position.coords.longitude],accuracy:position.coords.accuracy,timestamp:position.timestamp,mocked:position.mocked===true});if(active)setStatus('Position transmise au passager. Garde cet écran ouvert.');}
+        try{const result=await send('rides/location',{id:rideId,point:[position.coords.latitude,position.coords.longitude],accuracy:position.coords.accuracy,timestamp:position.timestamp,mocked:position.mocked===true});if(active){positionCallback.current?.(result.location);setStatus('Position transmise au passager. Garde cet écran ouvert.');}}
         catch(error){if(active)setStatus(error.message)}finally{pending=false}
       },error=>{if(active)setStatus(String(error))});
       if(active)watcher=subscription;else subscription.remove();

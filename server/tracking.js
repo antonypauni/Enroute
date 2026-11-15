@@ -31,12 +31,12 @@ export function trackingAction(path, input, state, user, now = Date.now()) {
   if (ride.driverLocation && input.timestamp <= ride.driverLocation.timestamp) {
     throw Error('Une position plus récente a déjà été reçue.');
   }
-  if (ride.driverLocation && now - ride.driverLocation.receivedAt < 3000) return {ok:true};
+  if (ride.driverLocation && now - ride.driverLocation.receivedAt < 3000) return {ok:true,location:ride.driverLocation};
   ride.driverLocation = {
     point:input.point.map(value => Number(value.toFixed(6))),
     accuracy:Math.round(input.accuracy), timestamp:input.timestamp, receivedAt:now,
   };
-  return {ok:true};
+  return {ok:true,location:ride.driverLocation};
 }
 
 export function rideForViewer(ride, now = Date.now()) {

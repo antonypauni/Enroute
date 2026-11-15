@@ -1,3 +1,13 @@
+## 1.3.3 — 15 novembre 2026
+
+- Acceptation confirmée par lecture si la réponse réseau est perdue ; aucun second POST automatique.
+- Mise à jour immédiate de la course acceptée et messages réseau explicites.
+- Fiche chauffeur avec véhicule, plaque et appel pour le passager, y compris invité.
+- Partage GPS demandé à l’acceptation, permission conservée et arrêt à la mise en arrière-plan.
+- Envoi GPS toutes les 3 secondes au maximum, lecture séquentielle toutes les 2 secondes après réponse.
+- Repère du chauffeur actualisé sur les deux cartes ; cadrage incluant le chauffeur.
+- 50 tests réussis ; parcours navigateur sans compte vérifié sur des positions synthétiques.
+
 ## 1.3.2 — 15 novembre 2026
 
 - Correction de la validation chauffeur refusée lorsque le motif était vide.

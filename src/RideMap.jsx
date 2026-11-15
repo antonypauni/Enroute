@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 export default function RideMap({pickup,destination,driver,onPoint}) {
-  const root=useRef(null),map=useRef(null),markers=useRef(null),handler=useRef(onPoint);
+  const root=useRef(null),map=useRef(null),markers=useRef(null),handler=useRef(onPoint),driverMarker=useRef(null),hadDriver=useRef(false);
   handler.current=onPoint;
   useEffect(()=>{
     const instance=L.map(root.current).setView([-4.36,15.32],12);
@@ -17,9 +17,17 @@ export default function RideMap({pickup,destination,driver,onPoint}) {
   useEffect(()=>{
     if(!markers.current)return;
     markers.current.clearLayers();
-    [[pickup,'Départ','#173e36'],[destination,'Arrivée','#b37527'],[driver,'Chauffeur · GPS','#2476bf']].forEach(([point,label,color])=>{
+    [[pickup,'Départ','#173e36'],[destination,'Arrivée','#b37527']].forEach(([point,label,color])=>{
       if(point)L.circleMarker(point,{radius:9,color:'#fff',weight:3,fillColor:color,fillOpacity:1}).bindTooltip(label,{permanent:true,direction:'top'}).addTo(markers.current);
     });
+  },[a,b]);
+  useEffect(()=>{
+    if(!map.current)return;
+    if(!driver){driverMarker.current?.remove();driverMarker.current=null;hadDriver.current=false;return}
+    if(driverMarker.current)driverMarker.current.setLatLng(driver);
+    else driverMarker.current=L.circleMarker(driver,{radius:10,color:'#fff',weight:3,fillColor:'#2476bf',fillOpacity:1}).bindTooltip('Chauffeur · GPS',{permanent:true,direction:'top'}).addTo(map.current);
+    if(!hadDriver.current){map.current.fitBounds([pickup,destination,driver].filter(Boolean),{padding:[45,45],maxZoom:15});hadDriver.current=true}
+    else if(!map.current.getBounds().contains(driver))map.current.panTo(driver);
   },[a,b,c]);
   useEffect(()=>{
     const points=[pickup,destination].filter(Boolean);

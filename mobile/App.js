@@ -1,10 +1,11 @@
+import {acceptRide,connectionMessage} from './rideAcceptance.mjs';
 import DriverRegistration from './DriverRegistration';
 import AdminConsole from './AdminConsole';
 import RideMap from './RideMap';
 import DriverTracking from './DriverTracking';
 import {centers,inServiceArea,closestCommune} from './places';
 import * as Location from 'expo-location';
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {StatusBar} from 'expo-status-bar';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
@@ -52,6 +53,7 @@ function Choice({label, value, options, onChange}) {
 }
 
 export default function App() {
+  const rideRevision=useRef(0);
   const [pickupPoint,setPickupPoint]=useState(null);
   const [destinationPoint,setDestinationPoint]=useState(null);
   const [mapTarget,setMapTarget]=useState('pickup');
@@ -85,6 +87,7 @@ export default function App() {
   const [quoteError, setQuoteError] = useState('');
   const [estimate, setEstimate] = useState(null);
   const [notice, setNotice] = useState('');
+  const [justAccepted,setJustAccepted]=useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -127,13 +130,14 @@ export default function App() {
     try {await action()}
     catch (err) {
       if (err.status===401 && session) {await forgetSession();setPage(account&&['primary','secondary'].includes(account.role)?'account':'ride')}
-      setError(err.name==='AbortError' ? 'La connexion a pris trop de temps. Réessaie.' : err.message);
+      setError(connectionMessage(err));
     } finally {setBusy(false)}
   }
 
   async function refresh(token = session) {
+    const revision=rideRevision.current;
     const data = await request('rides/state', undefined, token);
-    setRides(data.rides || []); setAvailable(data.available || []);
+    if(revision===rideRevision.current){setRides(data.rides || []); setAvailable(data.available || []);}
   }
 
   useEffect(() => {
@@ -142,12 +146,13 @@ export default function App() {
     let timer;
     async function poll() {
       try {
+        const revision=rideRevision.current;
         const data = await request('rides/state', undefined, session);
-        if (active) {setRides(data.rides || []);setAvailable(data.available || []);}
+        if (active&&revision===rideRevision.current) {setRides(data.rides || []);setAvailable(data.available || []);}
       } catch (error) {
-        if (active) setError(error.message);
+        if (active) setError(connectionMessage(error));
       } finally {
-        if (active) timer = setTimeout(poll, 5000);
+        if (active) timer = setTimeout(poll, 2000);
       }
     }
     poll();
@@ -216,6 +221,11 @@ export default function App() {
   }
 
   async function updateRide(action, id, extra = {}) {
+    if(action==='accept'){
+      const ride=await acceptRide({send:(path,body)=>request(path,body,session),readState:()=>request('rides/state',undefined,session),rideId:id,userId:account?.id});
+      rideRevision.current++;setJustAccepted(id);setRides(previous=>[...previous.filter(item=>item.id!==id),ride]);setAvailable(previous=>previous.filter(item=>item.id!==id));
+      setNotice('Course acceptée. Les coordonnées du passager sont disponibles.');return;
+    }
     await request(`rides/${action}`,{id,...extra},session);
     await refresh();
   }
@@ -249,14 +259,14 @@ export default function App() {
     const gpsLive=ride.driverLocation&&trackingNow-ride.driverLocation.receivedAt<=30000;
     const isClient = ride.ownerId===account?.id;
     const isDriver = ride.driverId===account?.id;
-    return <View key={ride.id} style={styles.card}><Text style={styles.label}>{statuses[ride.status]}{ride.womenOnly ? ' · Spécial femme' : ''}</Text><Text style={styles.cardTitle}>{ride.from} → {ride.to}</Text><Text style={styles.body}>{ride.immediate?'Départ immédiat':inKinshasa(ride.departure)} · {fare(ride.total)}</Text><Text style={styles.body}>Départ · {ride.pickupLandmark||ride.from}</Text>{['requested','accepted'].includes(ride.status)&&!isAvailable&&<RideMap pickup={ride.pickupPoint||centers[ride.from]} destination={ride.destinationPoint||centers[ride.to]} driver={gpsLive?ride.driverLocation.point:null}/>} {ride.status==='accepted'&&<Text style={styles.body}>{gpsLive?'GPS reçu à '+new Date(ride.driverLocation.receivedAt).toLocaleTimeString('fr-FR')+' · précision '+ride.driverLocation.accuracy+' m':(ride.locationStatus==='stale'||ride.driverLocation)?'Position du chauffeur non actualisée.':'En attente du partage GPS du chauffeur.'}</Text>}{isDriver&&ride.status==='accepted'&&<DriverTracking rideId={ride.id} send={sendAuthenticated}/>} <Text style={styles.body}>Arrivée · {ride.destinationLandmark||ride.to}</Text><Text style={styles.body}>{ride.passengers||1} passager{(ride.passengers||1)>1?'s':''}</Text>{ride.passengerName&&<Text style={styles.body}>Client · {ride.passengerName}</Text>}{ride.passengerPhone&&<Button secondary onPress={()=>Linking.openURL('tel:'+ride.passengerPhone).catch(()=>setError('Impossible d’ouvrir le téléphone.'))}>Appeler {ride.passengerPhone}</Button>}{(ride.photoKey||ride.passengerPhoto)&&<><Button secondary disabled={busy} onPress={()=>run(async()=>{const photo=await request('rides/photo',{id:ride.id},session);setRidePhotos(previous=>({...previous,[ride.id]:photo.data}))})}>Voir la photo</Button>{ridePhotos[ride.id]&&<Image accessibilityLabel="Photo fournie par le client" source={{uri:ridePhotos[ride.id]}} style={{width:80,height:80,borderRadius:40}}/>}</>}{ride.driverName && <Text style={styles.body}>Chauffeur · {ride.driverName}</Text>}{isAvailable && <Button disabled={busy} onPress={()=>run(()=>updateRide('accept',ride.id))}>Accepter</Button>}{isClient && ['requested','accepted'].includes(ride.status) && <Button secondary disabled={busy} onPress={()=>confirmCancellation(ride)}>Annuler la demande</Button>}{isDriver && ride.status==='accepted' && <Button disabled={busy} onPress={()=>run(()=>updateRide('complete',ride.id))}>Terminer la course</Button>}{isClient && ride.status==='completed' && (ride.rating ? <Text style={styles.body}>Note · {ride.rating}/5</Text> : <Choice label="Noter le véhicule" value="Choisir une note" options={['1','2','3','4','5']} onChange={value=>run(()=>updateRide('rate',ride.id,{rating:Number(value)}))}/>)}</View>;
+    return <View key={ride.id} style={styles.card}><Text style={styles.label}>{statuses[ride.status]}{ride.womenOnly ? ' · Spécial femme' : ''}</Text><Text style={styles.cardTitle}>{ride.from} → {ride.to}</Text><Text style={styles.body}>{ride.immediate?'Départ immédiat':inKinshasa(ride.departure)} · {fare(ride.total)}</Text><Text style={styles.body}>Départ · {ride.pickupLandmark||ride.from}</Text>{['requested','accepted'].includes(ride.status)&&!isAvailable&&<RideMap pickup={ride.pickupPoint||centers[ride.from]} destination={ride.destinationPoint||centers[ride.to]} driver={gpsLive?ride.driverLocation.point:null}/>} {ride.status==='accepted'&&<Text style={styles.body}>{gpsLive?'GPS reçu à '+new Date(ride.driverLocation.receivedAt).toLocaleTimeString('fr-FR')+' · précision '+ride.driverLocation.accuracy+' m':(ride.locationStatus==='stale'||ride.driverLocation)?'Position du chauffeur non actualisée.':'En attente du partage GPS du chauffeur.'}</Text>}{isDriver&&ride.status==='accepted'&&<DriverTracking rideId={ride.id} send={sendAuthenticated} onPosition={location=>{if(!location)return;rideRevision.current++;setRides(previous=>previous.map(item=>item.id===ride.id?{...item,driverLocation:location,locationStatus:'live'}:item))}} autoStart={justAccepted===ride.id}/>} <Text style={styles.body}>Arrivée · {ride.destinationLandmark||ride.to}</Text><Text style={styles.body}>{ride.passengers||1} passager{(ride.passengers||1)>1?'s':''}</Text>{ride.passengerName&&<Text style={styles.body}>Client · {ride.passengerName}</Text>}{ride.passengerPhone&&<Button secondary onPress={()=>Linking.openURL('tel:'+ride.passengerPhone).catch(()=>setError('Impossible d’ouvrir le téléphone.'))}>Appeler {ride.passengerPhone}</Button>}{(ride.photoKey||ride.passengerPhoto)&&<><Button secondary disabled={busy} onPress={()=>run(async()=>{const photo=await request('rides/photo',{id:ride.id},session);setRidePhotos(previous=>({...previous,[ride.id]:photo.data}))})}>Voir la photo</Button>{ridePhotos[ride.id]&&<Image accessibilityLabel="Photo fournie par le client" source={{uri:ridePhotos[ride.id]}} style={{width:80,height:80,borderRadius:40}}/>}</>}{ride.assignedDriver?<View style={styles.card}><Text style={styles.cardTitle}>Votre chauffeur est confirmé</Text><Text style={styles.body}>{ride.assignedDriver.name} · {ride.assignedDriver.car}</Text><Text style={styles.body}>Plaque · {ride.assignedDriver.plate}</Text>{!!ride.assignedDriver.phone&&<Button secondary onPress={()=>Linking.openURL('tel:'+ride.assignedDriver.phone).catch(()=>setError('Impossible d’ouvrir le téléphone.'))}>Appeler le chauffeur</Button>}<Text style={styles.body}>{gpsLive?'Position GPS en direct sur la carte.':'Chauffeur affecté · en attente de son signal GPS.'}</Text></View>:ride.driverName && <Text style={styles.body}>Chauffeur · {ride.driverName}</Text>}{isAvailable && <Button disabled={busy} onPress={()=>run(()=>updateRide('accept',ride.id))}>Accepter et partager mon GPS</Button>}{isClient && ['requested','accepted'].includes(ride.status) && <Button secondary disabled={busy} onPress={()=>confirmCancellation(ride)}>Annuler la demande</Button>}{isDriver && ride.status==='accepted' && <Button disabled={busy} onPress={()=>run(()=>updateRide('complete',ride.id))}>Terminer la course</Button>}{isClient && ride.status==='completed' && (ride.rating ? <Text style={styles.body}>Note · {ride.rating}/5</Text> : <Choice label="Noter le véhicule" value="Choisir une note" options={['1','2','3','4','5']} onChange={value=>run(()=>updateRide('rate',ride.id,{rating:Number(value)}))}/>)}</View>;
   }
 
   return <SafeAreaProvider><SafeAreaView style={styles.screen}><KeyboardAvoidingView style={styles.screen} behavior={Platform.OS==='ios'?'padding':undefined}>
     <StatusBar style="dark" />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       <Text style={styles.brand}>En Route <Text style={styles.arrow}>↗</Text></Text>
-      <Text style={{color:muted,fontSize:11}}>Version 1.3 · Compte chauffeur automatique</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:(account?.accountType==='driver'?[['ride','Commander'],['trips','Mes trajets'],['driver','Dossier'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']])).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
+      <Text style={{color:muted,fontSize:11}}>Version 1.3.3 · Suivi GPS chauffeur et passager</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:(account?.accountType==='driver'?[['ride','Commander'],['trips','Mes trajets'],['driver','Dossier'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']])).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {notice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
       {page==='ride' && <><View style={styles.hero}><Text style={styles.heroLabel}>KINSHASA</Text><Text accessibilityRole="header" style={styles.heroTitle}>Où vas-tu ?</Text><Text style={styles.heroSubtitle}>Ta ville. Ton rythme. Ta prochaine course.</Text><View style={styles.heroPill}><Text style={styles.heroPillText}>↗  Commande directe · Sans compte obligatoire</Text></View></View><View style={styles.card}>
