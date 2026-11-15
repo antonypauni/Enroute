@@ -1,21 +1,9 @@
-En Route 1.4 — 15 novembre 2026
-Compte chauffeur et dossier créés ensemble à l’envoi ; validation admin obligatoire.
-Dépôt et remplacement des quatre documents privés sur web et mobile.
-56 tests automatisés réussis. Exports JavaScript Android et iOS réussis.
-Paiements non connectés ; essais physiques et signature boutique restent nécessaires.
-
-Web : espace chauffeur direct /#chauffeur, connexion chauffeur distincte et confirmation du dépôt sans retour à la connexion client.
-
-Validation admin : motif facultatif pour approuver, commentaire automatique conservé dans le journal ; erreurs et confirmations visibles. Test navigateur sur dossier fictif réussi.
-
-Acceptation : confirmation après réponse perdue, sans second envoi automatique.
-Client invité : chauffeur confirmé, véhicule, plaque et appel dès acceptation.
-GPS : demande au chauffeur à l’acceptation, envoi au plus toutes les 3 secondes, lecture toutes les 2 secondes après réponse ; suivi au premier plan uniquement.
-Cartes client et chauffeur : repère GPS actualisé, recadrage si le chauffeur sort du cadre ; positions périmées masquées après 30 secondes.
-Test navigateur sans compte client réussi avec deux positions GPS synthétiques, pas de déplacement physique testé.
-
-Caisse : espèces, paiements électroniques externes vérifiés, remises chauffeur et versements.
-Commission En Route : 7 % ; part chauffeur : 93 % des encaissements confirmés.
-Soldes par devise FC/USD ; administration principale seule autorisée à écrire. Doublons contrôlés, corrections tracées et export CSV web.
-Aucun transfert automatique : connexion au compte marchand et intégration du prestataire encore nécessaires.
-Carte : client en point jaune, chauffeur avec icône voiture, arrivée en vert.
+En Route 1.5 — 15 novembre 2026
+Commission En Route : 7 % ; chauffeurs : 93 %. Pourcentages et montants visibles dans la vue d’ensemble web et mobile.
+Encaissements espèces/électroniques séparés, caisse entreprise/espèces chauffeurs, remises et versements tracés.
+Commissions cumulées sans virement après chaque course. Dès 19 000 FC de commission due : courses clients en espèces indisponibles pour le chauffeur, compte actif pour les courses électroniques confirmées. Aucune suspension automatique du compte.
+Espèces rétablies après régularisation intégrale, y compris par compensation d’encaissements électroniques confirmés.
+Bilans journaliers sauvegardés à chaque écriture, journées sans opération enregistrables, archives et exports CSV.
+Choix client visible : espèces, M-Pesa, Airtel Money, Orange Money, AfriMoney et carte. L’électronique reste désactivé jusqu’à intégration du compte marchand ; aucun faux paiement confirmé.
+64 tests automatisés réussis. Exports JavaScript Android et iOS vérifiés ; essais physiques et signature boutique restent nécessaires.
+Compte marchand à connecter avant les vrais paiements et virements électroniques.

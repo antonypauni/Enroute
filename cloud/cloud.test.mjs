@@ -202,4 +202,25 @@ await test('caisse Cloud persistante : double envoi unique, accès principal et 
  assert.notEqual((await call('/api/admin/manage',payload,undefined,client.data.token)).status,200);
 });
 
+await test('Cloud : espèces restreintes, compte actif, règlement et bilan journalier persisté',async()=>{
+ const admin=await call('/api/mobile/admin/login',{email:'recovered@example.test',password:'New-strong-pass-123'});
+ const login=await call('/api/mobile/login',{email:'independent-driver-a@example.test',password:'Auto-driver-pass-123'});assert.equal(login.status,200);
+ const driverId=login.data.user.id;
+ assert.equal((await call('/api/admin/manage',{action:'driver.status',id:driverId,status:'approved',note:'Documents de test vérifiés'},undefined,admin.data.token)).status,200);
+ const state=JSON.parse(db.prepare('SELECT data FROM enroute_state WHERE id=1').get().data);
+ state.rides.push({id:'hold-cloud-completed',driverId,status:'completed',total:400000,category:'standard',completedAt:new Date().toISOString()},{id:'hold-cloud-next',ownerId:'another-passenger',status:'requested',total:12000,category:'standard',immediate:true});
+ db.prepare('UPDATE enroute_state SET data=?,revision=revision+1 WHERE id=1').run(JSON.stringify(state));
+ const payload={action:'finance.receipt',rideId:'hold-cloud-completed',amount:'400000',method:'cash',holder:'driver',note:'Espèces de test constatées',idempotencyKey:'cloud-financial-hold-001'};
+ assert.equal((await call('/api/admin/manage',payload,undefined,admin.data.token)).status,200);
+ let view=await call('/api/rides/state',undefined,undefined,login.data.token);assert.equal(view.data.financialStatus.cashRestricted,true);assert.deepEqual(view.data.available,[]);
+ assert.match((await call('/api/rides/accept',{id:'hold-cloud-next'},undefined,login.data.token)).data.error,/commission cumulée/);
+ assert.equal((await call('/api/mobile/login',{email:'independent-driver-a@example.test',password:'Auto-driver-pass-123'})).status,200);
+ for(const [amount,key] of [['10000','partial'],['18000','final']]){
+  const paid=await call('/api/admin/manage',{action:'finance.remittance',driverId,currency:'CDF',amount,method:'mobile_money',reference:'HOLD-ELECTRONIC-'+key,note:'Remise de test confirmée',idempotencyKey:'cloud-financial-payment-'+key},undefined,admin.data.token);assert.equal(paid.status,200);
+  view=await call('/api/rides/state',undefined,undefined,login.data.token);assert.equal(view.data.financialStatus.cashRestricted,key==='partial');
+ }
+ assert.equal((await call('/api/rides/accept',{id:'hold-cloud-next'},undefined,login.data.token)).status,200);
+ const overview=await call('/api/admin/overview',undefined,undefined,admin.data.token);assert.ok(overview.data.finance.dailyReports.length);assert.ok(overview.data.finance.dailyReports[0].totals.CDF.remittances>=28000);
+});
+
 db.close();

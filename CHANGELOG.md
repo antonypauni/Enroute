@@ -1,3 +1,12 @@
+## 1.5 — 15 novembre 2026
+
+- 7 % En Route et 93 % chauffeurs visibles avec leurs montants dès la vue d’ensemble.
+- Commissions cumulées : dès 19 000 FC dus, seules les courses clients électroniques confirmées sont autorisées ; le compte chauffeur reste actif.
+- Retour des espèces après régularisation intégrale, sans remise à zéro quotidienne de la dette.
+- Bilans journaliers enregistrés à chaque écriture, archives, corrections datées et export CSV web/mobile.
+- Choix du paiement client visible sur web/mobile ; moyens électroniques désactivés jusqu’à intégration du compte marchand.
+- Contrôle serveur du mode de paiement et refus des fausses confirmations client. 64 tests automatisés réussis.
+
 ## 1.4 — 15 novembre 2026
 
 - Tableau des encaissements sur web et mobile : espèces et électronique, caisse entreprise et espèces chauffeurs.

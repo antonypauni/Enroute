@@ -1,4 +1,5 @@
-import {financeOverview,financeAction,snapshotCompletedRide} from './finance.js';
+import {canReceiveRidePayment} from '../mobile/ridePayment.mjs';
+import {financeOverview,financeAction,snapshotCompletedRide,driverFinancialStatus} from './finance.js';
 import {isAdmin} from './access.js';
 import {rideForViewer} from './tracking.js';
 import {deleteClientData} from './accountData.js';
@@ -13,15 +14,16 @@ export function recordAdminEvent(state,user,action,target,note) {
 }
 
 export function adminOverview(state) {
+  const financial=financeOverview(state);
   return {
     users:(state.users||[]).map(({id,name,email,role,blocked,accountType})=>({id,name,email,role,accountType:accountType||((state.drivers||[]).some(driver=>driver.id===id)?'driver':role==='client'?'client':'admin'),blocked:!!blocked})),
     guests:(state.guests||[]).map(({id,name,createdAt})=>({id,name,createdAt})),
     trips:state.trips||[],bookings:state.bookings||[],
     rides:(state.rides||[]).map(ride=>rideForViewer(ride)),
-    applications:(state.drivers||[]).map(({documents,...driver})=>({...driver,documentNames:Object.keys(documents||{})})),
+    applications:(state.drivers||[]).map(({documents,...driver})=>({...driver,documentNames:Object.keys(documents||{}),financialStatus:driverFinancialStatus(state,driver.id,financial)})),
     pricing:pricingFor(state),audit:(state.adminAudit||[]).slice(-100).reverse(),
     payments:{enabled:false,label:'Compte marchand non connecté — transferts automatiques désactivés'},
-    finance:financeOverview(state),
+    finance:financial,
   };
 }
 
@@ -40,7 +42,7 @@ function noteFor(input,required=false){
 export function manageAdmin(state,input,user) {
   if(!isAdmin(user)||user.blocked)throw Error('Accès administrateur requis.');
   const action=input.action;
-  if(typeof action==='string'&&action.startsWith('finance.')){const result=financeAction(state,input,user);if(!result.replayed)recordAdminEvent(state,user,action,result.id,input.note.trim());return result;}
+  if(typeof action==='string'&&action.startsWith('finance.')){const result=financeAction(state,input,user);if(!result.replayed){recordAdminEvent(state,user,action,result.id,input.note.trim());for(const change of result.holdChanges||[])recordAdminEvent(state,user,change.cashRestricted?'driver.cash.restrict':'driver.cash.restore',change.id,change.cashRestricted?'Commission cumulée : espèces désactivées, compte actif pour les courses électroniques.':'Commission régularisée : courses en espèces de nouveau autorisées.')}return result;}
   const approval=action==='driver.status'&&input.status==='approved';
   const note=noteFor(approval&&!String(input.note||'').trim()?{...input,note:'Documents vérifiés et chauffeur validé par l’administration.'}:input,['ride.cancel','driver.status','user.status','user.delete','trip.archive','booking.cancel'].includes(action));
   let target=input.id||'tarifs';
@@ -51,6 +53,7 @@ export function manageAdmin(state,input,user) {
     const driver=requiredItem(state.drivers,input.driverId,'Chauffeur');
     const account=requiredItem(state.users,driver.id,'Compte chauffeur');
     if((state.users||[]).some(item=>item.id===ride.ownerId&&item.blocked))throw Error('Le compte du passager est suspendu.');
+    if(!canReceiveRidePayment(driverFinancialStatus(state,driver.id),ride))throw Error('Mode de paiement indisponible pour ce chauffeur : électronique confirmé uniquement tant que la commission reste à régulariser.');
     if(driver.demo||driver.status!=='approved'||account.blocked||driver.id===ride.ownerId||driver.category!==ride.category||ride.womenOnly&&driver.gender!=='woman')throw Error('Choisissez un chauffeur validé, actif et compatible avec cette course.');
     if((state.rides||[]).some(other=>other.id!==ride.id&&other.status==='accepted'&&other.driverId===driver.id))throw Error('Ce chauffeur a déjà une course en cours.');
     ride.driverId=driver.id;ride.driverName=driver.name;ride.status='accepted';delete ride.driverLocation;

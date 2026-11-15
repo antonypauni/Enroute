@@ -40,7 +40,7 @@ test('doublons, droits, surencaissement et écritures annulées contrôlés',()=
  assert.throws(()=>financeAction(state,input('receipt',{amount:'1'}),admin),/dépasse/);
  for(const role of ['secondary','client','guest'])assert.throws(()=>financeAction(state,input('payout',{amount:'1'}),{role}),/admin principal/);
  const payout=financeAction(state,input('payout',{amount:'9300'}),admin);
- assert.throws(()=>financeAction(state,{action:'finance.void',id:state.finance.entries[0].id,note:'Correction du reçu'},admin),/insuffisant|dépasse/);
+ assert.throws(()=>financeAction(state,{action:'finance.void',id:state.finance.entries[0].id,note:'Correction du reçu'},admin),/insuffisant|dépasse|versement antérieur/);
  financeAction(state,{action:'finance.void',id:payout.id,note:'Correction du versement'},admin);
  financeAction(state,{action:'finance.void',id:state.finance.entries[0].id,note:'Correction du reçu'},admin);
  assert.equal(financeOverview(state).totals.CDF.cashReceipts,0);assert.equal(state.finance.entries.length,2);

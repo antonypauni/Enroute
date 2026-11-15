@@ -1,7 +1,39 @@
+import {refreshDailyReports} from './financeReports.js';
 export const COMMISSION_BPS=700;
+export const financialPolicy=state=>({cashThresholdCDF:19000,cashThresholdUSD:null,...state.finance?.policy});
 const currencies=['CDF','USD'],methods=['cash','mobile_money','card','bank'];
 const activeEntries=state=>(state.finance?.entries||[]).filter(entry=>!entry.voidedAt);
 const sum=(entries,predicate)=>entries.filter(predicate).reduce((total,entry)=>total+entry.amountMinor,0);
+
+function statusForBalances(state,balances,id){
+ const policy=financialPolicy(state),previous=state.finance?.cashRestrictions?.[id],debts={CDF:0,USD:0},currencies=[];
+ for(const currency of ['CDF','USD']){
+  debts[currency]=Math.max(0,-(balances.find(driver=>driver.id===id&&driver.currency===currency)?.balance||0));
+  const threshold=policy['cashThreshold'+currency];
+  if(debts[currency]>0&&((threshold&&debts[currency]>=threshold)||(previous?.active&&previous.currencies.includes(currency))))currencies.push(currency);
+ }
+ return {cashRestricted:currencies.length>0,currencies,debtCDF:debts.CDF,debtUSD:debts.USD,thresholdCDF:policy.cashThresholdCDF,thresholdUSD:policy.cashThresholdUSD,since:previous?.since||null};
+}
+
+export function driverFinancialStatus(state,id,view){return statusForBalances(state,(view||financeOverview(state)).drivers,id);}
+
+function syncHolds(state){
+ const balances=financeOverview(state).drivers,ledger=state.finance,changes=[];ledger.cashRestrictions||={};
+ const ids=new Set([...balances.map(driver=>driver.id),...Object.keys(ledger.cashRestrictions)]);
+ for(const id of ids){
+  const previous=ledger.cashRestrictions[id],status=statusForBalances(state,balances,id);
+  if(status.cashRestricted){ledger.cashRestrictions[id]={active:true,currencies:status.currencies,since:previous?.active?previous.since:new Date().toISOString()};if(!previous?.active)changes.push({id,cashRestricted:true});}
+  else if(previous?.active){ledger.cashRestrictions[id]={...previous,active:false,clearedAt:new Date().toISOString()};changes.push({id,cashRestricted:false});}
+ }
+ return changes;
+}
+
+function commitFinance(state,ledger,initialChanges=[]){
+ const candidate={...state,finance:ledger};
+ const holdChanges=[...initialChanges,...syncHolds(candidate)];
+ refreshDailyReports(candidate,financeOverview);
+ state.finance=ledger;return holdChanges;
+}
 
 export function amountToMinor(value,currency){
  if(!currencies.includes(currency)||!/^\d{1,10}(?:\.\d{1,2})?$/.test(String(value)))throw Error('Montant invalide. Utilisez un nombre positif, sans séparateur de milliers.');
@@ -68,7 +100,20 @@ export function financeOverview(state){
   total.companyCash=total.accounts.cash;
   total.companyElectronic=total.accounts.mobile_money+total.accounts.card+total.accounts.bank;
  }
- return {unpricedCourses:(state.rides||[]).filter(ride=>ride.status==='completed'&&ride.driverId&&!contracts.some(contract=>contract.id===ride.id)).map(ride=>ride.id),commissionBps:COMMISSION_BPS,merchantConnected:false,automaticPayouts:false,totals,drivers:[...drivers.values()],courses,entries:(state.finance?.entries||[]).map(({requestSignature,idempotencyKey,...entry})=>entry).slice().reverse()};
+ return {unpricedCourses:(state.rides||[]).filter(ride=>ride.status==='completed'&&ride.driverId&&!contracts.some(contract=>contract.id===ride.id)).map(ride=>ride.id),commissionBps:COMMISSION_BPS,merchantConnected:false,automaticPayouts:false,totals,policy:financialPolicy(state),dailyReports:Object.values(state.finance?.dailyReports||{}).map(report=>({...report,closed:report.closed||report.day<new Date(Date.now()+3600000).toISOString().slice(0,10)})).sort((a,b)=>b.day.localeCompare(a.day)),drivers:[...drivers.values()].map(driver=>({...driver,financialStatus:statusForBalances(state,[...drivers.values()],driver.id)})),courses,entries:(state.finance?.entries||[]).map(({requestSignature,idempotencyKey,...entry})=>entry).slice().reverse()};
+}
+
+function validateHistoricalPayouts(state,ledger){
+ const entries=[];
+ for(const entry of ledger.entries){
+  if(entry.voidedAt)continue;
+  if(entry.kind==='payout'){
+   const view=financeOverview({...state,finance:{...ledger,entries}});
+   const balance=view.drivers.find(driver=>driver.id===entry.driverId&&driver.currency===entry.currency)?.balance||0;
+   if(entry.amountMinor>Math.max(0,balance))throw Error('Cette correction invaliderait un versement antérieur. Annulez d’abord le versement concerné.');
+  }
+  entries.push(entry);
+ }
 }
 
 function validateBalances(view){
@@ -77,7 +122,6 @@ function validateBalances(view){
  }
  for(const driver of view.drivers){
   if(driver.cashHeld<0)throw Error('La remise dépasse les espèces encore détenues par ce chauffeur.');
-  if(driver.paid>Math.max(0,driver.earned-driver.held+driver.remitted))throw Error('Ce versement dépasse le montant dû au chauffeur sur les sommes encaissées.');
  }
  if(view.courses.some(course=>course.received>course.fareMinor))throw Error('Le total encaissé dépasse le prix de la course.');
 }
@@ -86,14 +130,21 @@ export function financeAction(state,input,user){
  if(user?.role!=='primary'||user.blocked)throw Error('Seul l’admin principal gère les encaissements et les versements.');
  const note=typeof input.note==='string'?input.note.trim():'';
  if(note.length<3||note.length>300)throw Error('Ajoutez un commentaire de 3 à 300 caractères pour cette écriture.');
- const ledger={entries:structuredClone(state.finance?.entries||[]),contracts:contractsFor(state)};
+ const ledger={...structuredClone(state.finance||{}),entries:structuredClone(state.finance?.entries||[]),contracts:contractsFor(state)};
+ const initialChanges=syncHolds({...state,finance:ledger});
+ if(input.action==='finance.policy'){
+  const cashThresholdCDF=amountToMinor(input.thresholdCDF,'CDF');
+  ledger.policy={cashThresholdCDF,cashThresholdUSD:input.thresholdUSD?amountToMinor(input.thresholdUSD,'USD'):null};
+  const holdChanges=commitFinance(state,ledger,initialChanges);return {ok:true,id:'commission-policy',holdChanges};
+ }
+ if(input.action==='finance.report'){const holdChanges=commitFinance(state,ledger,initialChanges);return {ok:true,id:new Date(Date.now()+3600000).toISOString().slice(0,10),holdChanges};}
  if(input.action==='finance.void'){
   const entry=ledger.entries.find(entry=>entry.id===input.id);
   if(!entry)throw Error('Écriture introuvable.');
   if(entry.voidedAt)return {ok:true,id:entry.id,replayed:true};
   entry.voidedAt=new Date().toISOString();entry.voidedBy=user.id;entry.voidNote=note;
-  validateBalances(financeOverview({...state,finance:ledger}));state.finance=ledger;
-  return {ok:true,id:entry.id};
+  validateBalances(financeOverview({...state,finance:ledger}));validateHistoricalPayouts(state,ledger);const holdChanges=commitFinance(state,ledger,initialChanges);
+  return {ok:true,id:entry.id,holdChanges};
  }
  const kind=input.action?.replace('finance.','');
  if(!['receipt','remittance','payout'].includes(kind))throw Error('Opération financière inconnue.');
@@ -118,9 +169,14 @@ export function financeAction(state,input,user){
  const previous=ledger.entries.find(entry=>entry.idempotencyKey===input.idempotencyKey);
  if(previous){if(previous.requestSignature!==signature)throw Error('Ce règlement a déjà été envoyé avec des informations différentes.');return {ok:true,id:previous.id,replayed:true};}
  if(reference&&method!=='cash'&&ledger.entries.some(entry=>!entry.voidedAt&&entry.method!=='cash'&&entry.reference.toLocaleLowerCase()===reference.toLocaleLowerCase()))throw Error('Cette référence électronique est déjà enregistrée.');
+ if(kind==='payout'){
+  const before=financeOverview({...state,finance:ledger});
+  const balance=before.drivers.find(driver=>driver.id===driverId&&driver.currency===currency)?.balance||0;
+  if(amountMinor>Math.max(0,balance))throw Error('Ce versement dépasse le montant dû au chauffeur sur les sommes encaissées.');
+ }
  const id=crypto.randomUUID();
  ledger.entries.push({...normalized,id,occurredAt:new Date(occurredAt).toISOString(),recordedAt:new Date().toISOString(),actor:user.id,actorName:user.name,idempotencyKey:input.idempotencyKey,requestSignature:signature,source:'manual',reference:reference||'CAISSE-'+id.slice(0,8).toUpperCase()});
  validateBalances(financeOverview({...state,finance:ledger}));
- state.finance=ledger;
- return {ok:true,id};
+ const holdChanges=commitFinance(state,ledger,initialChanges);
+ return {ok:true,id,holdChanges};
 }
