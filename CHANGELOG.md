@@ -1,3 +1,13 @@
+## 1.4 — 15 novembre 2026
+
+- Tableau des encaissements sur web et mobile : espèces et électronique, caisse entreprise et espèces chauffeurs.
+- Commission fixée à 7 %, part chauffeur calculée sur les encaissements réels confirmés.
+- Registre des remises et des versements réservé à l’administrateur principal.
+- Paiements partiels, soldes par FC/USD, contrôle des surpaiements et des doubles envois, annulations tracées et export CSV web.
+- Les transferts marchands automatiques restent désactivés jusqu’à intégration du prestataire.
+- Point client jaune, icône voiture pour le chauffeur et arrivée en vert sur les deux cartes.
+- 56 tests automatisés ; parcours navigateur de caisse testé avec données fictives.
+
 ## 1.3.3 — 15 novembre 2026
 
 - Acceptation confirmée par lecture si la réponse réseau est perdue ; aucun second POST automatique.

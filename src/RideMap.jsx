@@ -1,3 +1,4 @@
+import {carMarkerHtml} from '../mobile/carMarker.mjs';
 import React,{useEffect,useRef} from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -17,7 +18,7 @@ export default function RideMap({pickup,destination,driver,onPoint}) {
   useEffect(()=>{
     if(!markers.current)return;
     markers.current.clearLayers();
-    [[pickup,'Départ','#173e36'],[destination,'Arrivée','#b37527']].forEach(([point,label,color])=>{
+    [[pickup,'Client · départ','#e4b73f'],[destination,'Arrivée','#173e36']].forEach(([point,label,color])=>{
       if(point)L.circleMarker(point,{radius:9,color:'#fff',weight:3,fillColor:color,fillOpacity:1}).bindTooltip(label,{permanent:true,direction:'top'}).addTo(markers.current);
     });
   },[a,b]);
@@ -25,7 +26,7 @@ export default function RideMap({pickup,destination,driver,onPoint}) {
     if(!map.current)return;
     if(!driver){driverMarker.current?.remove();driverMarker.current=null;hadDriver.current=false;return}
     if(driverMarker.current)driverMarker.current.setLatLng(driver);
-    else driverMarker.current=L.circleMarker(driver,{radius:10,color:'#fff',weight:3,fillColor:'#2476bf',fillOpacity:1}).bindTooltip('Chauffeur · GPS',{permanent:true,direction:'top'}).addTo(map.current);
+    else driverMarker.current=L.marker(driver,{title:'Voiture du chauffeur',alt:'Voiture du chauffeur',icon:L.divIcon({html:carMarkerHtml,className:'driver-car-icon',iconSize:[44,44],iconAnchor:[22,22],tooltipAnchor:[0,-22]})}).bindTooltip('Chauffeur · GPS',{permanent:true,direction:'top'}).addTo(map.current);
     if(!hadDriver.current){map.current.fitBounds([pickup,destination,driver].filter(Boolean),{padding:[45,45],maxZoom:15});hadDriver.current=true}
     else if(!map.current.getBounds().contains(driver))map.current.panTo(driver);
   },[a,b,c]);
@@ -33,5 +34,5 @@ export default function RideMap({pickup,destination,driver,onPoint}) {
     const points=[pickup,destination].filter(Boolean);
     if(map.current&&points.length)map.current.fitBounds(points,{padding:[45,45],maxZoom:15});
   },[a,b]);
-  return <div className="ride-map"><div ref={root} className="ride-map-canvas" role="region" aria-label="Carte du départ, de l’arrivée et du chauffeur"/><small>Vert : départ · Or : arrivée · Bleu : GPS du chauffeur. Les centres de commune sont approximatifs tant qu’aucun point précis n’est choisi.</small></div>;
+  return <div className="ride-map"><div ref={root} className="ride-map-canvas" role="region" aria-label="Carte du départ, de l’arrivée et du chauffeur"/><small>Jaune : client / départ · Vert : arrivée · Voiture : chauffeur (GPS). Les centres de commune sont approximatifs tant qu’aucun point précis n’est choisi.</small></div>;
 }

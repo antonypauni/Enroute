@@ -2,18 +2,18 @@
   "expo": {
     "name": "En Route",
     "slug": "en-route-rdc",
-    "version": "1.3.3",
+    "version": "1.4.0",
     "orientation": "portrait",
     "icon": "./assets/enroute-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "cd.enroute.mobile",
       "supportsTablet": false,
-      "buildNumber": "5"
+      "buildNumber": "6"
     },
     "android": {
       "package": "cd.enroute.mobile",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#173e36",
         "foregroundImage": "./assets/enroute-adaptive.png"
@@ -42,7 +42,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "En Route utilise votre position pour choisir votre dÃ©part et, si vous Ãªtes chauffeur, partager votre GPS pendant une course active."
+          "locationWhenInUsePermission": "En Route utilise votre position pour choisir votre dÃƒÂ©part et, si vous ÃƒÂªtes chauffeur, partager votre GPS pendant une course active."
         }
       ],
       "expo-status-bar",

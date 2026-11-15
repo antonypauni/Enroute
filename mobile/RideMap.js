@@ -1,3 +1,4 @@
+import {carMarkerHtml} from './carMarker.mjs';
 import {useEffect,useRef,useState} from 'react';
 import {Linking,StyleSheet,Text,View} from 'react-native';
 import {WebView} from 'react-native-webview';
@@ -9,9 +10,9 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribu
 let selection=null,lastBounds='',driverPin=null,hadDriver=false;
 window.setRideMap=function(data){
 selection=data.selectTarget;markers.clearLayers();
-const pins=[[data.pickup,'Départ','#173e36'],[data.destination,'Arrivée','#b37527']];
+const pins=[[data.pickup,'Client · départ','#e4b73f'],[data.destination,'Arrivée','#173e36']];
 pins.forEach(function(pin){if(pin[0])L.circleMarker(pin[0],{radius:9,color:'#fff',weight:3,fillColor:pin[2],fillOpacity:1}).bindTooltip(pin[1],{direction:'top',permanent:true}).addTo(markers)});
-if(data.driver){if(driverPin)driverPin.setLatLng(data.driver);else driverPin=L.circleMarker(data.driver,{radius:10,color:'#fff',weight:3,fillColor:'#2476bf',fillOpacity:1}).bindTooltip('Chauffeur · GPS',{direction:'top',permanent:true}).addTo(map);if(!hadDriver){map.fitBounds([data.pickup,data.destination,data.driver].filter(Boolean),{padding:[40,40],maxZoom:15});hadDriver=true}else if(!map.getBounds().contains(data.driver))map.panTo(data.driver)}else{if(driverPin)driverPin.remove();driverPin=null;hadDriver=false}
+if(data.driver){if(driverPin)driverPin.setLatLng(data.driver);else driverPin=L.marker(data.driver,{title:'Voiture du chauffeur',alt:'Voiture du chauffeur',icon:L.divIcon({html:${JSON.stringify(carMarkerHtml)},className:'driver-car-icon',iconSize:[44,44],iconAnchor:[22,22],tooltipAnchor:[0,-22]})}).bindTooltip('Chauffeur · GPS',{direction:'top',permanent:true}).addTo(map);if(!hadDriver){map.fitBounds([data.pickup,data.destination,data.driver].filter(Boolean),{padding:[40,40],maxZoom:15});hadDriver=true}else if(!map.getBounds().contains(data.driver))map.panTo(data.driver)}else{if(driverPin)driverPin.remove();driverPin=null;hadDriver=false}
 const bounds=JSON.stringify([data.pickup,data.destination]);
 if(bounds!==lastBounds){lastBounds=bounds;const points=[data.pickup,data.destination,data.driver].filter(Boolean);if(points.length)map.fitBounds(points,{padding:[40,40],maxZoom:15});}
 };

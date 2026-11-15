@@ -182,4 +182,24 @@ await test('dépôts concurrents indépendants : les deux comptes et documents s
  assert.deepEqual(responses.map(result=>result.status),[200,200]);assert.equal(files.size,count+8);
  for(const result of responses){const state=await call('/api/rides/state',undefined,undefined,result.data.token);assert.equal(state.data.application.status,'pending');assert.equal(state.data.application.documents,undefined)}
 });
+await test('caisse Cloud persistante : double envoi unique, accès principal et versement chauffeur',async()=>{
+ const admin=await call('/api/mobile/admin/login',{email:'recovered@example.test',password:'New-strong-pass-123'});
+ assert.equal(admin.status,200);
+ const overview=await call('/api/admin/overview',undefined,undefined,admin.data.token);
+ const course=overview.data.finance.courses.find(course=>course.currency==='CDF');assert.ok(course);
+ const payload={action:'finance.receipt',rideId:course.id,amount:String(course.fareMinor),method:'mobile_money',holder:'company',reference:'CLOUD-RECEIPT-UNIQUE',note:'Transaction externe vérifiée en test',idempotencyKey:'cloud-finance-idempotency-001'};
+ const duplicate=await Promise.all([call('/api/admin/manage',payload,undefined,admin.data.token),call('/api/admin/manage',payload,undefined,admin.data.token)]);
+ assert.deepEqual(duplicate.map(result=>result.status),[200,200]);
+ let finance=(await call('/api/admin/overview',undefined,undefined,admin.data.token)).data.finance;
+ assert.equal(finance.entries.filter(entry=>entry.reference==='CLOUD-RECEIPT-UNIQUE').length,1);
+ const driver=finance.drivers.find(driver=>driver.id===course.driverId&&driver.currency==='CDF');assert.ok(driver.balance>0);
+ const paid=await call('/api/admin/manage',{action:'finance.payout',driverId:driver.id,currency:'CDF',amount:String(driver.balance),method:'mobile_money',reference:'CLOUD-PAYOUT-UNIQUE',note:'Versement externe confirmé en test',idempotencyKey:'cloud-finance-idempotency-002'},undefined,admin.data.token);
+ assert.equal(paid.status,200);
+ finance=(await call('/api/admin/overview',undefined,undefined,admin.data.token)).data.finance;
+ assert.equal(finance.drivers.find(item=>item.id===driver.id&&item.currency==='CDF').balance,0);
+ assert.equal(finance.automaticPayouts,false);
+ const client=await call('/api/mobile/login',{email:'other@example.test',password:'Strong-test-pass-123'});
+ assert.notEqual((await call('/api/admin/manage',payload,undefined,client.data.token)).status,200);
+});
+
 db.close();

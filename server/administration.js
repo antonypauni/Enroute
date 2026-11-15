@@ -1,3 +1,4 @@
+import {financeOverview,financeAction,snapshotCompletedRide} from './finance.js';
 import {isAdmin} from './access.js';
 import {rideForViewer} from './tracking.js';
 import {deleteClientData} from './accountData.js';
@@ -19,7 +20,8 @@ export function adminOverview(state) {
     rides:(state.rides||[]).map(ride=>rideForViewer(ride)),
     applications:(state.drivers||[]).map(({documents,...driver})=>({...driver,documentNames:Object.keys(documents||{})})),
     pricing:pricingFor(state),audit:(state.adminAudit||[]).slice(-100).reverse(),
-    payments:{enabled:false,label:'Compte marchand non connecté — aucun paiement réel'},
+    payments:{enabled:false,label:'Compte marchand non connecté — transferts automatiques désactivés'},
+    finance:financeOverview(state),
   };
 }
 
@@ -38,6 +40,7 @@ function noteFor(input,required=false){
 export function manageAdmin(state,input,user) {
   if(!isAdmin(user)||user.blocked)throw Error('Accès administrateur requis.');
   const action=input.action;
+  if(typeof action==='string'&&action.startsWith('finance.')){const result=financeAction(state,input,user);if(!result.replayed)recordAdminEvent(state,user,action,result.id,input.note.trim());return result;}
   const approval=action==='driver.status'&&input.status==='approved';
   const note=noteFor(approval&&!String(input.note||'').trim()?{...input,note:'Documents vérifiés et chauffeur validé par l’administration.'}:input,['ride.cancel','driver.status','user.status','user.delete','trip.archive','booking.cancel'].includes(action));
   let target=input.id||'tarifs';
@@ -58,7 +61,7 @@ export function manageAdmin(state,input,user) {
   } else if(action==='ride.cancel'||action==='ride.complete') {
     const ride=requiredItem(state.rides,input.id,'Course');
     if(action==='ride.complete'&&ride.status!=='accepted'||action==='ride.cancel'&&!['requested','accepted'].includes(ride.status))throw Error('Cette transition de course est indisponible.');
-    ride.status=action==='ride.complete'?'completed':'cancelled';ride.adminNote=note;delete ride.driverLocation;
+    ride.status=action==='ride.complete'?'completed':'cancelled';ride.adminNote=note;delete ride.driverLocation;if(ride.status==='completed')snapshotCompletedRide(state,ride);
   } else if(action==='driver.status') {
     const driver=requiredItem(state.drivers,input.id,'Chauffeur');
     if(driver.demo||!['approved','rejected','pending'].includes(input.status))throw Error('Statut de dossier invalide.');
