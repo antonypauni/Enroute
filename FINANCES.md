@@ -49,3 +49,6 @@ Le client, y compris invité, voit Espèces, M-Pesa, Airtel Money, Orange Money,
 Chaque opération sauvegarde le bilan de sa journée, selon Africa/Kinshasa. Une journée passée est conservée ; une annulation ultérieure constitue une correction dans le bilan du jour de correction. Les périodes sans opérations entre deux enregistrements sont complétées au prochain enregistrement. Le bouton « Enregistrer le bilan du jour » permet aussi de conserver explicitement une journée sans opération. Aucun traitement nocturne externe n’est requis pour enregistrer les écritures.
 
 Les bilans comprennent les espèces, l’électronique, les remises, les versements, les commissions et les soldes. Ils sont exportables en CSV sur le site et dans l’application mobile. Les 7 % et 93 %, avec leurs montants, figurent également dans la vue d’ensemble.
+
+## Espèces déclarées par le chauffeur
+À la fin du trajet, le chauffeur indique explicitement si les espèces restant dues ont été reçues. Une réponse positive crée une écriture « Espèces déclarées par le chauffeur », attribuée à son compte, et actualise le bilan et les 7 % cumulés. Une réponse négative ne crée aucune recette. Le principal peut corriger une déclaration avec une annulation tracée. Une répétition de la confirmation ne crée pas de doublon. Cela ne constitue pas une vérification bancaire et ne déclenche aucun transfert.

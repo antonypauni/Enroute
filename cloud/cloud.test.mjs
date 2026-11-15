@@ -238,4 +238,23 @@ await test('offres chauffeur : profil client visible, photo privée autorisée a
  const own=await call('/api/rides/state',undefined,undefined,driver.data.token);assert.ok(own.data.rides.find(item=>item.id===ride.data.id).passengerPhone);assert.equal(own.data.available.length,0);
 });
 
+
+await test('Cloud mobile : disponibilité, étapes, espèces chauffeur persistées et répétition sans doublon',async()=>{
+ const driver=await call('/api/mobile/login',{email:'independent-driver-b@example.test',password:'Auto-driver-pass-123'});
+ const token=driver.data.token;
+ let view=(await call('/api/rides/state',undefined,undefined,token)).data;
+ const ride=view.rides.find(r=>r.status==='accepted');assert.ok(ride);
+ assert.equal((await call('/api/drivers/availability',{online:false},undefined,token)).status,200);
+ assert.equal((await call('/api/rides/state',undefined,undefined,token)).data.application.online,false);
+ assert.equal((await call('/api/rides/progress',{id:ride.id,stage:'in_progress'},undefined,token)).status,400);
+ for(const stage of ['arrived','in_progress'])assert.equal((await call('/api/rides/progress',{id:ride.id,stage},undefined,token)).status,200);
+ assert.equal((await call('/api/rides/complete',{id:ride.id,cashReceived:true},undefined,token)).status,200);
+ assert.equal((await call('/api/rides/complete',{id:ride.id,cashReceived:true},undefined,token)).status,200);
+ const admin=await call('/api/mobile/admin/login',{email:'recovered@example.test',password:'New-strong-pass-123'});
+ const finance=(await call('/api/admin/overview',undefined,undefined,admin.data.token)).data.finance;
+ const entries=finance.entries.filter(e=>e.rideId===ride.id);assert.equal(entries.length,1);assert.equal(entries[0].source,'driver_declared');assert.equal(entries[0].actor,driver.data.user.id);
+ assert.equal((await call('/api/rides/state',undefined,undefined,token)).data.rides.find(r=>r.id===ride.id).status,'completed');
+ assert.equal((await call('/api/drivers/availability',{online:true},undefined,token)).status,200);
+});
+
 db.close();

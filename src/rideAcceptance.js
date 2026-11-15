@@ -1,1 +1,1 @@
-export {acceptRide,retainAcceptedRide,connectionMessage} from '../mobile/rideAcceptance.mjs';
+export {acceptRide,retainAcceptedRide,connectionMessage,performRideAction} from '../mobile/rideAcceptance.mjs';

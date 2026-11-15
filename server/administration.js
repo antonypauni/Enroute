@@ -54,13 +54,14 @@ export function manageAdmin(state,input,user) {
     const account=requiredItem(state.users,driver.id,'Compte chauffeur');
     if((state.users||[]).some(item=>item.id===ride.ownerId&&item.blocked))throw Error('Le compte du passager est suspendu.');
     if(!canReceiveRidePayment(driverFinancialStatus(state,driver.id),ride))throw Error('Mode de paiement indisponible pour ce chauffeur : électronique confirmé uniquement tant que la commission reste à régulariser.');
+    if(driver.online===false)throw Error('Ce chauffeur est hors ligne et ne reçoit pas de nouvelles courses.');
     if(driver.demo||driver.status!=='approved'||account.blocked||driver.id===ride.ownerId||driver.category!==ride.category||ride.womenOnly&&driver.gender!=='woman')throw Error('Choisissez un chauffeur validé, actif et compatible avec cette course.');
     if((state.rides||[]).some(other=>other.id!==ride.id&&other.status==='accepted'&&other.driverId===driver.id))throw Error('Ce chauffeur a déjà une course en cours.');
-    ride.driverId=driver.id;ride.driverName=driver.name;ride.status='accepted';delete ride.driverLocation;
+    ride.driverId=driver.id;ride.driverName=driver.name;ride.status='accepted';ride.progress='en_route';delete ride.arrivedAt;delete ride.startedAt;delete ride.driverLocation;
   } else if(action==='ride.release') {
     const ride=requiredItem(state.rides,input.id,'Course');
     if(ride.status!=='accepted')throw Error('Seule une course affectée peut être remise en attente.');
-    delete ride.driverId;delete ride.driverName;delete ride.driverLocation;ride.status='requested';
+    delete ride.driverId;delete ride.driverName;delete ride.driverLocation;delete ride.progress;delete ride.arrivedAt;delete ride.startedAt;ride.status='requested';
   } else if(action==='ride.cancel'||action==='ride.complete') {
     const ride=requiredItem(state.rides,input.id,'Course');
     if(action==='ride.complete'&&ride.status!=='accepted'||action==='ride.cancel'&&!['requested','accepted'].includes(ride.status))throw Error('Cette transition de course est indisponible.');

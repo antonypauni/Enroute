@@ -23,3 +23,15 @@ export async function acceptRide({send,readState,rideId,userId}){
 export function retainAcceptedRide(previous,ride){
   return {...previous,rides:[...(previous.rides||[]).filter(item=>item.id!==ride.id),ride],available:(previous.available||[]).filter(item=>item.id!==ride.id)};
 }
+
+export async function performRideAction({send,readState,rideId,userId,action,extra={}}){
+ try{return await send('rides/'+action,{id:rideId,...extra})}
+ catch(error){
+  if(error.status)throw error;
+  try{
+   const state=await readState(),ride=state.rides?.find(ride=>ride.id===rideId&&ride.driverId===userId);
+   if(ride&&(action==='complete'&&ride.status==='completed'||action==='progress'&&['arrived','in_progress'].indexOf(extra.stage)>=0&&(['arrived','in_progress'].indexOf(ride.progress)>=['arrived','in_progress'].indexOf(extra.stage))&&ride.status==='accepted'))return ride;
+  }catch(verificationError){if(verificationError.status===401)throw verificationError;}
+  throw new Error(connectionMessage(error));
+ }
+}

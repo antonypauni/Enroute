@@ -1,3 +1,9 @@
+# Version 1.7 — 15 novembre 2026
+- Disponibilité chauffeur en ligne/hors ligne, sans interrompre la course active.
+- Étapes partagées : chauffeur arrivé, client à bord, course terminée.
+- Confirmation explicite des espèces reçues à la fin, commission et bilan actualisés sans doublon.
+- Déclaration chauffeur identifiable dans le registre web et mobile.
+
 ## 1.6 — 15 novembre 2026
 
 - Espace chauffeur dédié aux demandes clients : nom, photo facultative, prix, passagers, lieux et carte avant acceptation.

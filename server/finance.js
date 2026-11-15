@@ -1,3 +1,4 @@
+import {isCashRide} from '../mobile/ridePayment.mjs';
 import {refreshDailyReports} from './financeReports.js';
 export const COMMISSION_BPS=700;
 export const financialPolicy=state=>({cashThresholdCDF:19000,cashThresholdUSD:null,...state.finance?.policy});
@@ -179,4 +180,20 @@ export function financeAction(state,input,user){
  validateBalances(financeOverview({...state,finance:ledger}));
  const holdChanges=commitFinance(state,ledger,initialChanges);
  return {ok:true,id,holdChanges};
+}
+
+export function recordDriverCash(state,ride,user){
+ const approved=(state.drivers||[]).some(driver=>driver.id===user?.id&&driver.status==='approved'&&!driver.demo);
+ if(!approved||user?.role!=='client'||user?.blocked||(state.users||[]).some(account=>account.id===user.id&&account.blocked)||ride.driverId!==user.id||ride.status!=='completed'||!isCashRide(ride))throw Error('Seul le chauffeur affecté peut déclarer les espèces de sa course terminée.');
+ const ledger={...structuredClone(state.finance||{}),entries:structuredClone(state.finance?.entries||[]),contracts:contractsFor(state)};
+ const key='driver-cash-'+ride.id,previous=ledger.entries.find(entry=>entry.idempotencyKey===key);
+ if(previous){if(previous.voidedAt)throw Error('Cette déclaration a été corrigée par l’administration. Contactez En Route.');return {id:previous.id,replayed:true};}
+ const contract=ledger.contracts[ride.id];if(!contract)throw Error('Le montant de cette course doit être vérifié par l’administration.');
+ const received=ledger.entries.filter(entry=>!entry.voidedAt&&entry.kind==='receipt'&&entry.rideId===ride.id).reduce((sum,entry)=>sum+entry.amountMinor,0),amountMinor=contract.fareMinor-received;
+ if(amountMinor<=0)return {replayed:true};
+ const initialChanges=syncHolds({...state,finance:ledger}),id=crypto.randomUUID(),now=new Date().toISOString();
+ ledger.entries.push({id,idempotencyKey:key,kind:'receipt',rideId:ride.id,driverId:user.id,driverName:contract.driverName,currency:contract.currency,amountMinor,method:'cash',holder:'driver',reference:'CHAUFFEUR-'+id.slice(0,8).toUpperCase(),occurredAt:now,recordedAt:now,actor:user.id,actorName:user.name||contract.driverName,source:'driver_declared',note:'Espèces reçues déclarées par le chauffeur à la fin de course.'});
+ validateBalances(financeOverview({...state,finance:ledger}));
+ const holdChanges=commitFinance(state,ledger,initialChanges);
+ return {id,holdChanges};
 }

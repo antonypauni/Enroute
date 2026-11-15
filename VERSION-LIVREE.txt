@@ -1,12 +1,14 @@
-En Route 1.6 — 15 novembre 2026
+En Route 1.7 — 15 novembre 2026
 Commission En Route : 7 % ; chauffeurs : 93 %. Pourcentages et montants visibles dans la vue d’ensemble web et mobile.
 Encaissements espèces/électroniques séparés, caisse entreprise/espèces chauffeurs, remises et versements tracés.
 Commissions cumulées sans virement après chaque course. Dès 19 000 FC de commission due : courses clients en espèces indisponibles pour le chauffeur, compte actif pour les courses électroniques confirmées. Aucune suspension automatique du compte.
 Espèces rétablies après régularisation intégrale, y compris par compensation d’encaissements électroniques confirmés.
 Bilans journaliers sauvegardés à chaque écriture, journées sans opération enregistrables, archives et exports CSV.
 Choix client visible : espèces, M-Pesa, Airtel Money, Orange Money, AfriMoney et carte. L’électronique reste désactivé jusqu’à intégration du compte marchand ; aucun faux paiement confirmé.
-68 tests automatisés réussis. Exports JavaScript Android et iOS vérifiés ; essais physiques et signature boutique restent nécessaires.
+74 tests automatisés réussis. Exports JavaScript Android et iOS vérifiés ; essais physiques et signature boutique restent nécessaires.
 Compte marchand à connecter avant les vrais paiements et virements électroniques.
 
 Espace chauffeur : demandes clients dédiées avant acceptation, nom, photo facultative privée, passagers, montant, départ/arrivée et carte du point client.
 Téléphone disponible après acceptation. Dossier chauffeur conservé dans un onglet séparé.
+
+Chauffeur en ligne/hors ligne, étapes arrivée puis client à bord, fin de course avec confirmation explicite des espèces reçues. Déclaration chauffeur identifiée dans le registre, sans double encaissement en cas de réponse réseau perdue.
