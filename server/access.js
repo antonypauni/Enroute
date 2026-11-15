@@ -3,6 +3,7 @@ export function isAdmin(user) {
 }
 
 export function validateLoginAudience(path, user) {
+  if(user?.blocked)throw Error('Compte suspendu. Contactez l’administration.');
   if (['/api/admin/login', '/api/mobile/admin/login'].includes(path) && !isAdmin(user)) {
     throw new Error('Ce compte est un compte client. Utilisez la connexion client.');
   }

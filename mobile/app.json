@@ -2,18 +2,18 @@
   "expo": {
     "name": "En Route",
     "slug": "en-route-rdc",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/enroute-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "cd.enroute.mobile",
       "supportsTablet": false,
-      "buildNumber": "2"
+      "buildNumber": "3"
     },
     "android": {
       "package": "cd.enroute.mobile",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#173e36",
         "foregroundImage": "./assets/enroute-adaptive.png"
@@ -45,7 +45,8 @@
           "locationWhenInUsePermission": "En Route utilise votre position pour choisir votre départ et, si vous êtes chauffeur, partager votre GPS pendant une course active."
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-sharing"
     ],
     "platforms": [
       "android",

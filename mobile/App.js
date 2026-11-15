@@ -1,3 +1,4 @@
+import AdminConsole from './AdminConsole';
 import RideMap from './RideMap';
 import DriverTracking from './DriverTracking';
 import {centers,inServiceArea,closestCommune} from './places';
@@ -76,7 +77,6 @@ export default function App() {
   const [name,setName]=useState('');
   const [confirmPassword,setConfirmPassword]=useState('');
   const [deletePassword,setDeletePassword]=useState('');
-  const [adminData,setAdminData]=useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -87,7 +87,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const sendLocation=useCallback((path,data)=>request(path,data,session),[session]);
+  const sendAuthenticated=useCallback((path,data)=>request(path,data,session),[session]);
   async function useGPS(){const permission=await Location.requestForegroundPermissionsAsync();if(permission.status!=='granted')throw Error('Localisation refusée. Choisis ton départ sur la carte.');let timeout;let position;try{position=await Promise.race([Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}),new Promise((_,reject)=>{timeout=setTimeout(()=>reject(Error('Le GPS ne répond pas. Choisis ton départ sur la carte.')),20000)})])}finally{clearTimeout(timeout)}if(!Number.isFinite(position.coords.accuracy)||position.coords.accuracy>100)throw Error('Signal GPS imprécis. Choisis le départ sur la carte.');selectMapPoint('pickup',[position.coords.latitude,position.coords.longitude]);}
   function selectMapPoint(target,point){if(!inServiceArea(point))throw Error('Choisis un point dans la zone de Kinshasa.');if(target==='pickup'){setPickupPoint(point);setFrom(closestCommune(point))}else{setDestinationPoint(point);setTo(closestCommune(point))}setEstimate(null);setQuoteAttempt(value=>value+1)}
 
@@ -147,21 +147,7 @@ export default function App() {
     return () => {active = false;clearTimeout(timer);};
   }, [session,page]);
 
-  useEffect(() => {
-    if (!session || page !== 'admin' || !['primary','secondary'].includes(account?.role)) return;
-    let active=true;
-    async function loadAdmin() {
-      try {
-        const [overview,courses]=await Promise.all([request('admin/overview',undefined,session),request('rides/state',undefined,session)]);
-        if(active)setAdminData({...overview,...courses});
-      } catch(error) {
-        if(active)setError(error.message);
-      }
-    }
-    loadAdmin();
-    const timer=setInterval(loadAdmin,10000);
-    return()=>{active=false;clearInterval(timer)};
-  },[session,page,account?.role]);
+
 
   function navigate(next) {
     if (busy) return;
@@ -198,7 +184,7 @@ export default function App() {
       await SecureStore.setItemAsync(sessionKey,guest.token);
       token=guest.token;setSession(token);setAccount(guest.user);
     }
-    await request('rides/request',{...ridePayload(),passengerName:passengerName.trim(),passengerPhone:passengerPhone.trim(),...(passengerPhoto?{passengerPhoto}:{}),pickupLandmark:pickupLandmark.trim(),destinationLandmark:destinationLandmark.trim(),immediate:true,expectedTotal:estimate.total},token);
+    try {await request('rides/request',{...ridePayload(),passengerName:passengerName.trim(),passengerPhone:passengerPhone.trim(),...(passengerPhoto?{passengerPhoto}:{}),pickupLandmark:pickupLandmark.trim(),destinationLandmark:destinationLandmark.trim(),immediate:true,expectedTotal:estimate.total},token);} catch(error){if(error.message.includes('montant actualisé')){setEstimate(null);setQuoteAttempt(value=>value+1);setNotice('Le tarif a changé. Vérifie le nouveau montant avant de confirmer à nouveau.')}throw error}
     setEstimate(null);setPage('trips');setNotice('Demande envoyée. Recherche d’un chauffeur.');
     await refresh(token);
   }
@@ -256,14 +242,14 @@ export default function App() {
     const gpsLive=ride.driverLocation&&trackingNow-ride.driverLocation.receivedAt<=30000;
     const isClient = ride.ownerId===account?.id;
     const isDriver = ride.driverId===account?.id;
-    return <View key={ride.id} style={styles.card}><Text style={styles.label}>{statuses[ride.status]}{ride.womenOnly ? ' · Spécial femme' : ''}</Text><Text style={styles.cardTitle}>{ride.from} → {ride.to}</Text><Text style={styles.body}>{ride.immediate?'Départ immédiat':inKinshasa(ride.departure)} · {fare(ride.total)}</Text><Text style={styles.body}>Départ · {ride.pickupLandmark||ride.from}</Text>{['requested','accepted'].includes(ride.status)&&!isAvailable&&<RideMap pickup={ride.pickupPoint||centers[ride.from]} destination={ride.destinationPoint||centers[ride.to]} driver={gpsLive?ride.driverLocation.point:null}/>} {ride.status==='accepted'&&<Text style={styles.body}>{gpsLive?'GPS reçu à '+new Date(ride.driverLocation.receivedAt).toLocaleTimeString('fr-FR')+' · précision '+ride.driverLocation.accuracy+' m':(ride.locationStatus==='stale'||ride.driverLocation)?'Position du chauffeur non actualisée.':'En attente du partage GPS du chauffeur.'}</Text>}{isDriver&&ride.status==='accepted'&&<DriverTracking rideId={ride.id} send={sendLocation}/>} <Text style={styles.body}>Arrivée · {ride.destinationLandmark||ride.to}</Text><Text style={styles.body}>{ride.passengers||1} passager{(ride.passengers||1)>1?'s':''}</Text>{ride.passengerName&&<Text style={styles.body}>Client · {ride.passengerName}</Text>}{ride.passengerPhone&&<Button secondary onPress={()=>Linking.openURL('tel:'+ride.passengerPhone).catch(()=>setError('Impossible d’ouvrir le téléphone.'))}>Appeler {ride.passengerPhone}</Button>}{(ride.photoKey||ride.passengerPhoto)&&<><Button secondary disabled={busy} onPress={()=>run(async()=>{const photo=await request('rides/photo',{id:ride.id},session);setRidePhotos(previous=>({...previous,[ride.id]:photo.data}))})}>Voir la photo</Button>{ridePhotos[ride.id]&&<Image accessibilityLabel="Photo fournie par le client" source={{uri:ridePhotos[ride.id]}} style={{width:80,height:80,borderRadius:40}}/>}</>}{ride.driverName && <Text style={styles.body}>Chauffeur · {ride.driverName}</Text>}{isAvailable && <Button disabled={busy} onPress={()=>run(()=>updateRide('accept',ride.id))}>Accepter</Button>}{isClient && ['requested','accepted'].includes(ride.status) && <Button secondary disabled={busy} onPress={()=>confirmCancellation(ride)}>Annuler la demande</Button>}{isDriver && ride.status==='accepted' && <Button disabled={busy} onPress={()=>run(()=>updateRide('complete',ride.id))}>Terminer la course</Button>}{isClient && ride.status==='completed' && (ride.rating ? <Text style={styles.body}>Note · {ride.rating}/5</Text> : <Choice label="Noter le véhicule" value="Choisir une note" options={['1','2','3','4','5']} onChange={value=>run(()=>updateRide('rate',ride.id,{rating:Number(value)}))}/>)}</View>;
+    return <View key={ride.id} style={styles.card}><Text style={styles.label}>{statuses[ride.status]}{ride.womenOnly ? ' · Spécial femme' : ''}</Text><Text style={styles.cardTitle}>{ride.from} → {ride.to}</Text><Text style={styles.body}>{ride.immediate?'Départ immédiat':inKinshasa(ride.departure)} · {fare(ride.total)}</Text><Text style={styles.body}>Départ · {ride.pickupLandmark||ride.from}</Text>{['requested','accepted'].includes(ride.status)&&!isAvailable&&<RideMap pickup={ride.pickupPoint||centers[ride.from]} destination={ride.destinationPoint||centers[ride.to]} driver={gpsLive?ride.driverLocation.point:null}/>} {ride.status==='accepted'&&<Text style={styles.body}>{gpsLive?'GPS reçu à '+new Date(ride.driverLocation.receivedAt).toLocaleTimeString('fr-FR')+' · précision '+ride.driverLocation.accuracy+' m':(ride.locationStatus==='stale'||ride.driverLocation)?'Position du chauffeur non actualisée.':'En attente du partage GPS du chauffeur.'}</Text>}{isDriver&&ride.status==='accepted'&&<DriverTracking rideId={ride.id} send={sendAuthenticated}/>} <Text style={styles.body}>Arrivée · {ride.destinationLandmark||ride.to}</Text><Text style={styles.body}>{ride.passengers||1} passager{(ride.passengers||1)>1?'s':''}</Text>{ride.passengerName&&<Text style={styles.body}>Client · {ride.passengerName}</Text>}{ride.passengerPhone&&<Button secondary onPress={()=>Linking.openURL('tel:'+ride.passengerPhone).catch(()=>setError('Impossible d’ouvrir le téléphone.'))}>Appeler {ride.passengerPhone}</Button>}{(ride.photoKey||ride.passengerPhoto)&&<><Button secondary disabled={busy} onPress={()=>run(async()=>{const photo=await request('rides/photo',{id:ride.id},session);setRidePhotos(previous=>({...previous,[ride.id]:photo.data}))})}>Voir la photo</Button>{ridePhotos[ride.id]&&<Image accessibilityLabel="Photo fournie par le client" source={{uri:ridePhotos[ride.id]}} style={{width:80,height:80,borderRadius:40}}/>}</>}{ride.driverName && <Text style={styles.body}>Chauffeur · {ride.driverName}</Text>}{isAvailable && <Button disabled={busy} onPress={()=>run(()=>updateRide('accept',ride.id))}>Accepter</Button>}{isClient && ['requested','accepted'].includes(ride.status) && <Button secondary disabled={busy} onPress={()=>confirmCancellation(ride)}>Annuler la demande</Button>}{isDriver && ride.status==='accepted' && <Button disabled={busy} onPress={()=>run(()=>updateRide('complete',ride.id))}>Terminer la course</Button>}{isClient && ride.status==='completed' && (ride.rating ? <Text style={styles.body}>Note · {ride.rating}/5</Text> : <Choice label="Noter le véhicule" value="Choisir une note" options={['1','2','3','4','5']} onChange={value=>run(()=>updateRide('rate',ride.id,{rating:Number(value)}))}/>)}</View>;
   }
 
   return <SafeAreaProvider><SafeAreaView style={styles.screen}><KeyboardAvoidingView style={styles.screen} behavior={Platform.OS==='ios'?'padding':undefined}>
     <StatusBar style="dark" />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       <Text style={styles.brand}>En Route <Text style={styles.arrow}>↗</Text></Text>
-      <Text style={{color:muted,fontSize:11}}>Version 1.1 · Carte et suivi GPS</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']]).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
+      <Text style={{color:muted,fontSize:11}}>Version 1.2 · Administration complète</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']]).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {notice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
       {page==='ride' && <><View style={styles.hero}><Text style={styles.heroLabel}>KINSHASA</Text><Text accessibilityRole="header" style={styles.heroTitle}>Où vas-tu ?</Text><Text style={styles.heroSubtitle}>Ta ville. Ton rythme. Ta prochaine course.</Text><View style={styles.heroPill}><Text style={styles.heroPillText}>↗  Commande directe · Sans compte obligatoire</Text></View></View><View style={styles.card}>
@@ -285,15 +271,7 @@ export default function App() {
       </View></>}
       {page==='trips' && <><Text accessibilityRole="header" style={styles.heading}>Mes trajets</Text>{!session ? <View style={styles.card}><Text style={styles.body}>Tes courses apparaîtront ici après ta première commande.</Text><Button onPress={()=>navigate('ride')}>Commander une course</Button></View> : <><Button secondary disabled={busy} onPress={()=>run(()=>refresh())}>Actualiser</Button>{account?.role==='guest'&&<Text style={styles.body}>Mode invité. Conserve cet appareil pour retrouver tes courses.</Text>}{available.length>0 && <><Text style={styles.subheading}>Demandes disponibles</Text>{available.map(ride=>rideCard(ride,true))}</>}{rides.length ? rides.map(ride=>rideCard(ride)) : <Text style={styles.body}>Aucune course pour le moment.</Text>}</>}</>}
       {page==='account' && <><Text accessibilityRole="header" style={styles.heading}>Mon compte</Text>{account?.role==='guest'&&<View style={styles.card}><Text style={styles.cardTitle}>Mode invité</Text><Text style={styles.body}>Tu peux commander directement avec ton nom et ton téléphone.</Text><Button secondary disabled={busy} onPress={confirmGuestDeletion}>Effacer mes données invité</Button></View>}<View style={styles.card}>{account && account.role!=='guest' ? <><Text style={styles.cardTitle}>{account.name}</Text><Text style={styles.body}>{account.email}</Text><Button secondary disabled={busy} onPress={()=>run(async()=>{try {await request('logout',{},session)} finally {await forgetSession()}})}>Se déconnecter</Button>{account.role==='client'&&<><Field label="Mot de passe pour supprimer le compte" value={deletePassword} onChangeText={setDeletePassword} secureTextEntry autoCapitalize="none" autoCorrect={false}/><Button secondary disabled={busy} onPress={confirmAccountDeletion}>Supprimer mon compte</Button></>}</> : <><Choice label="Espace de connexion" value={loginMode==='admin'?'Administrateur':'Client'} options={['Client','Administrateur']} onChange={value=>{setLoginMode(value==='Administrateur'?'admin':'client');setRegister(false);setPassword('');setError('')}}/><Text style={styles.body}>{loginMode==='admin'?'Connecte-toi avec ton compte administrateur En Route.':'Connecte-toi avec ton compte client En Route.'}</Text>{register&&<Field label="Ton nom" value={name} onChangeText={setName} maxLength={60} autoComplete="name"/>}<Field label="Adresse e-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email"/><Field label="Mot de passe" value={password} onChangeText={setPassword} secureTextEntry={!passwordVisible} autoCapitalize="none" autoCorrect={false} autoComplete={register?"new-password":"current-password"}/>{register&&<Field label="Confirmer le mot de passe" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="new-password"/>}<Button secondary disabled={busy} onPress={()=>setPasswordVisible(value=>!value)}>{passwordVisible?'Masquer le mot de passe':'Afficher le mot de passe'}</Button><Button disabled={busy} onPress={()=>run(login)}>{register?'Créer mon compte client':'Se connecter'}</Button>{loginMode==='client'&&<Button secondary disabled={busy} onPress={()=>{setRegister(value=>!value);setPassword('');setConfirmPassword('');setError('')}}>{register?'J’ai déjà un compte':'Créer un compte client'}</Button>}</>}</View></>}
-      {page==='admin' && account && ['primary','secondary'].includes(account.role) && <>
-        <Text accessibilityRole="header" style={styles.heading}>Administration</Text>
-        {adminData?<>
-          <View style={styles.card}><Text style={styles.cardTitle}>{adminData.users.filter(user=>user.role==='client').length} clients</Text><Text style={styles.body}>{adminData.rides.filter(ride=>ride.status==='requested').length} demandes en attente</Text><Text style={styles.body}>{adminData.applications.filter(driver=>driver.status==='pending').length} dossiers chauffeurs à valider</Text></View>
-          <Text style={styles.subheading}>Dernières courses</Text>
-          {adminData.rides.slice(-5).reverse().map(ride=><View style={styles.card} key={ride.id}><Text style={styles.cardTitle}>{ride.from} → {ride.to}</Text><Text style={styles.body}>{ride.pickupLandmark||ride.from} → {ride.destinationLandmark||ride.to}</Text><Text style={styles.body}>{ride.passengers||1} passager(s) · {fare(ride.total)} · {statuses[ride.status]}</Text></View>)}
-        </>:<ActivityIndicator color={ink}/>}
-        <Button secondary onPress={()=>Linking.openURL(origin+'/#administration').catch(()=>setError('Impossible d’ouvrir le site.'))}>Gérer les dossiers sur le site</Button>
-      </>}
+      {page==='admin' && account && ['primary','secondary'].includes(account.role) && <AdminConsole api={sendAuthenticated} user={account} onUpdated={async()=>{await forgetSession();setLoginMode('admin');setPage('account');setNotice('Compte modifié. Reconnectez-vous avec vos nouveaux identifiants.')}}/>}
       {busy && <ActivityIndicator accessibilityLabel="Chargement" color={ink}/>}
     </ScrollView>
   </KeyboardAvoidingView></SafeAreaView></SafeAreaProvider>;

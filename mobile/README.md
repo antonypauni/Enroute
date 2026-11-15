@@ -44,3 +44,14 @@ Garder l’application au premier plan. Le partage s’arrête si elle passe en 
 Le fond de carte utilise les tuiles OpenStreetMap et charge Leaflet depuis unpkg. Une connexion Internet est requise. Aucun compte Google Maps n’est nécessaire pour cette carte. Pour un trafic commercial important, configurer un fournisseur de tuiles adapté et ses conditions d’utilisation. Les permissions et l’affichage doivent être validés sur les téléphones avant publication en boutique.
 
 État des outils de développement : cinq avis de sécurité modérés restent signalés par npm dans la chaîne Expo/ngrok. Les mises à jour compatibles du SDK ont été appliquées ; aucune rétrogradation majeure forcée n’a été effectuée. Réexaminer les versions corrigées avant mise en boutique.
+
+## Administration complète — version 1.2
+Connectez-vous dans Compte, espace Administrateur. Les rubriques de gestion existent dans le site et le mobile : courses, chauffeurs et documents privés, clients et invités, trajets, réservations, tarifs, équipe, journal et profil administrateur.
+
+Pour confirmer une demande, ouvrez Courses, choisissez un chauffeur validé disponible de la même catégorie, puis Affecter et confirmer. Spécial femme ne peut être affecté qu’à une conductrice. Le serveur empêche une double affectation du chauffeur. Une course peut être réaffectée, remise en attente, annulée avec motif ou clôturée après réalisation. Une ancienne course n’est pas rouverte.
+
+Les annulations, suspensions et suppressions demandent un motif et une confirmation. L’admin principal contrôle les accès des comptes, la suppression de clients et les tarifs. Les secondaires gèrent les opérations mais ne peuvent pas modifier les accès administrateurs ni les tarifs. Le compte principal est protégé et utilise Mon compte pour ses propres identifiants.
+
+Les tarifs s’appliquent aux nouvelles demandes et exigent une nouvelle confirmation si un montant a changé. Les courses créées gardent leur montant. Aucun encaissement ni remboursement bancaire réel n’est effectué : le compte marchand reste à connecter.
+
+Sur mobile, Consulter un document ouvre le sélecteur du téléphone pour le visualiser ou l’exporter. Choisir uniquement une application de confiance. Les fichiers temporaires de consultation restent dans le cache privé de l’application et sont nettoyés lorsque l’écran d’administration est quitté. Les mots de passe, les jetons et les documents bruts ne figurent pas dans les listes d’administration.

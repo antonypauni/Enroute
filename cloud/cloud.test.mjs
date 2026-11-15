@@ -107,4 +107,32 @@ await test('GPS mobile du chauffeur, lecture du passager et arrêt de partage',a
  assert.equal((await call('/api/rides/cancel',{id:ride.data.id},undefined,guest.data.token)).status,200);
  assert.equal((await call('/api/rides/location',{...gps,timestamp:Date.now()},undefined,driver.data.token)).status,400);
 });
+
+
+await test('administration Cloud : affectation, accès mobile, prix et comptes',async()=>{
+ const admin=await call('/api/mobile/admin/login',{email:'recovered@example.test',password:'New-strong-pass-123'});
+ const client=await call('/api/register',{name:'Gestion client',email:'manage-client@example.test',password:'Strong-test-pass-123'});
+ const clientSession=await call('/api/mobile/login',{email:'manage-client@example.test',password:'Strong-test-pass-123'});
+ const driver=await call('/api/mobile/login',{email:'driver@example.test',password:'Strong-test-pass-123'});
+ const form={from:'Lemba',to:'Gombe',category:'comfort',immediate:true};
+ const estimate=await call('/api/rides/quote',form);
+ const ride=await call('/api/rides/request',{...form,expectedTotal:estimate.data.total},undefined,clientSession.data.token);
+ const manage=body=>call('/api/admin/manage',body,undefined,admin.data.token);
+ assert.equal((await call('/api/admin/manage',{action:'ride.assign',id:ride.data.id,driverId:driver.data.user.id},undefined,clientSession.data.token)).status,403);
+ assert.equal((await manage({action:'ride.assign',id:ride.data.id,driverId:driver.data.user.id})).status,200);
+ assert.equal((await call('/api/rides/state',undefined,undefined,clientSession.data.token)).data.rides[0].status,'accepted');
+ assert.equal((await manage({action:'ride.complete',id:ride.data.id})).status,200);
+ const pricing={baseFare:2500,perKm:900,comfortMultiplier:1.5,xlMultiplier:2};
+ assert.equal((await manage({action:'pricing.update',pricing})).status,200);
+ assert.notEqual((await call('/api/rides/quote',form)).data.total,estimate.data.total);
+ assert.equal((await call('/api/rides/request',{...form,expectedTotal:estimate.data.total},undefined,clientSession.data.token)).status,400);
+ assert.equal((await manage({action:'user.status',id:client.data.user.id,blocked:true,note:'Suspension contrôlée'})).status,200);
+ assert.equal((await call('/api/mobile/login',{email:'manage-client@example.test',password:'Strong-test-pass-123'})).status,400);
+ assert.equal((await call('/api/state',undefined,undefined,clientSession.data.token)).status,401);
+ assert.equal((await manage({action:'user.status',id:client.data.user.id,blocked:false,note:'Réactivation contrôlée'})).status,200);
+ assert.equal((await call('/api/state',undefined,undefined,clientSession.data.token)).status,401);
+ const overview=await call('/api/admin/overview',undefined,undefined,admin.data.token);assert.ok(overview.data.audit.some(event=>event.action==='pricing.update'));
+ assert.equal(overview.data.payments.enabled,false);
+ assert.equal((await call('/api/drivers/document',{id:driver.data.user.id,kind:'license'},undefined,admin.data.token)).status,200);
+});
 db.close();
