@@ -1,7 +1,9 @@
-En Route 1.3.1 — 15 novembre 2026
+En Route 1.3.2 — 15 novembre 2026
 Compte chauffeur et dossier créés ensemble à l’envoi ; validation admin obligatoire.
 Dépôt et remplacement des quatre documents privés sur web et mobile.
-44 tests automatisés réussis. Exports JavaScript Android et iOS réussis.
+45 tests automatisés réussis. Exports JavaScript Android et iOS réussis.
 Paiements non connectés ; essais physiques et signature boutique restent nécessaires.
 
 Web : espace chauffeur direct /#chauffeur, connexion chauffeur distincte et confirmation du dépôt sans retour à la connexion client.
+
+Validation admin : motif facultatif pour approuver, commentaire automatique conservé dans le journal ; erreurs et confirmations visibles. Test navigateur sur dossier fictif réussi.

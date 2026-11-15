@@ -6,6 +6,21 @@ import {validateLoginAudience} from './access.js';
 
 const primary={id:'admin',name:'Administrateur',role:'primary'};
 const secondary={id:'second',name:'Équipe',role:'secondary'};
+test('validation chauffeur sans motif : statut et journal enregistrés, contrôles conservés',()=>{
+ for(const admin of [primary,secondary]){
+  const state=fixture();state.drivers[0].status='pending';state.drivers[0].documentRevision=2;
+  const approval={action:'driver.status',id:'driver',status:'approved',documentRevision:2,note:''};
+  assert.throws(()=>manageAdmin(state,{...approval,documentRevision:1},admin),/dossier a changé/);
+  assert.equal(state.drivers[0].status,'pending');
+  manageAdmin(state,approval,admin);
+  assert.equal(state.drivers[0].status,'approved');
+  assert.match(state.drivers[0].reviewNote,/Documents vérifiés/);
+  assert.equal(state.adminAudit.at(-1).action,'driver.status');
+  assert.throws(()=>manageAdmin(state,{action:'driver.status',id:'driver',status:'rejected'},admin),/motif/);
+  delete state.drivers[0].documents.insurance;
+  assert.throws(()=>manageAdmin(state,approval,admin),/quatre pièces/);
+ }
+});
 function fixture(){return {users:[primary,secondary,{id:'driver',role:'client',name:'Chauffeur',email:'driver@test.example',salt:'private',hash:'secret'},{id:'client',role:'client',name:'Passager',email:'client@test.example'}],guests:[],sessions:[{id:'driver',hash:'private-token'}],trips:[{id:'trip',seats:1}],bookings:[{id:'booking',tripId:'trip',ownerId:'client',seats:2,status:'confirmed'}],drivers:[{id:'driver',name:'Chauffeur',status:'approved',gender:'woman',category:'comfort',owner:'Propriétaire',car:'Voiture',plate:'TEST',documents:{identity:'private',license:'private',registration:'private',insurance:'private'}}],rides:[{id:'ride',ownerId:'client',from:'Lemba',to:'Gombe',category:'comfort',womenOnly:true,immediate:true,status:'requested',total:12000}]}}
 test('administration : permissions et protection du compte principal',()=>{
  const s=fixture();

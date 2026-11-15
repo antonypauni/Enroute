@@ -1,3 +1,10 @@
+## 1.3.2 — 15 novembre 2026
+
+- Correction de la validation chauffeur refusée lorsque le motif était vide.
+- Conservation des vérifications de pièces, des droits et de la révision documentaire.
+- Confirmation explicite et défilement vers les erreurs ou résultats de gestion.
+- Test navigateur avec un dossier fictif et tests API sans motif réussis.
+
 ## 1.3.1 — 15 novembre 2026
 
 - Espace chauffeur dédié accessible directement par /#chauffeur.

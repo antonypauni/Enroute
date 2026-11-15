@@ -38,7 +38,8 @@ function noteFor(input,required=false){
 export function manageAdmin(state,input,user) {
   if(!isAdmin(user)||user.blocked)throw Error('Accès administrateur requis.');
   const action=input.action;
-  const note=noteFor(input,['ride.cancel','driver.status','user.status','user.delete','trip.archive','booking.cancel'].includes(action));
+  const approval=action==='driver.status'&&input.status==='approved';
+  const note=noteFor(approval&&!String(input.note||'').trim()?{...input,note:'Documents vérifiés et chauffeur validé par l’administration.'}:input,['ride.cancel','driver.status','user.status','user.delete','trip.archive','booking.cancel'].includes(action));
   let target=input.id||'tarifs';
   if(action==='ride.assign') {
     const ride=requiredItem(state.rides,input.id,'Course');

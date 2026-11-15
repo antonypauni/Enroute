@@ -22,7 +22,7 @@ try {await test('serveur Node : administration mobile, affectation et révocatio
  const clientSession=await call('mobile/login',{email:'client@test.example',password});
  const documents=Object.fromEntries(['identity','license','registration','insurance'].map(key=>[key,'data:application/pdf;base64,JVBERg==']));
  assert.equal((await call('drivers/apply',{gender:'woman',owner:'Propriétaire',car:'Voiture',plate:'TEST',category:'comfort',documents},undefined,driver.cookie)).status,200);
- assert.equal((await call('admin/manage',{action:'driver.status',id:driver.data.user.id,status:'approved',note:'Documents vérifiés'},admin.data.token)).status,200);
+ assert.equal((await call('admin/manage',{action:'driver.status',id:driver.data.user.id,status:'approved',note:''},admin.data.token)).status,200);
  const form={from:'Lemba',to:'Gombe',category:'comfort',womenOnly:true,passengerGender:'woman',immediate:true};
  const quote=await call('rides/quote',form);const ride=await call('rides/request',{...form,expectedTotal:quote.data.total},clientSession.data.token);
  assert.equal((await call('admin/manage',{action:'ride.assign',id:ride.data.id,driverId:driver.data.user.id},clientSession.data.token)).status,403);
@@ -55,7 +55,7 @@ await test('compte chauffeur créé au dépôt, session invitée transférée et
  assert.equal((await call('mobile/login',{email:payload.email,password:payload.password})).data.user.accountType,'driver');
  assert.equal((await call('drivers/resubmit',payload,created.data.token)).status,200);
  assert.equal((await call('admin/manage',{action:'driver.status',id:created.data.user.id,status:'approved',documentRevision:1,note:'Documents contrôlés'},admin.data.token)).status,400);
- assert.equal((await call('admin/manage',{action:'driver.status',id:created.data.user.id,status:'approved',documentRevision:2,note:'Documents contrôlés'},admin.data.token)).status,200);
+ assert.equal((await call('admin/manage',{action:'driver.status',id:created.data.user.id,status:'approved',documentRevision:2,note:''},admin.data.token)).status,200);
  assert.equal((await call('drivers/resubmit',payload,created.data.token)).status,400);
 });} finally {
  await new Promise(resolve=>server.close(resolve));

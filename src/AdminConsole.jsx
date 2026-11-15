@@ -1,4 +1,4 @@
-import React,{useCallback,useEffect,useState} from 'react';
+import React,{useCallback,useEffect,useRef,useState} from 'react';
 import AdminProfile from './AdminProfile';
 import RideMap from './RideMap';
 import {centers} from './kin';
@@ -16,8 +16,10 @@ async function api(path,body){
 
 export default function AdminConsole({user,onUpdated}) {
   const [confirmationBox,setConfirmationBox]=useState(null);
+  const feedbackRef=useRef(null);
   const [data,setData]=useState(null),[tab,setTab]=useState('overview'),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
   const [search,setSearch]=useState(''),[filter,setFilter]=useState('all'),[note,setNote]=useState(''),[page,setPage]=useState(1),[expanded,setExpanded]=useState(null),[now,setNow]=useState(Date.now());
+  useEffect(()=>{if(error||notice){feedbackRef.current?.scrollIntoView({behavior:'smooth',block:'center'});feedbackRef.current?.focus({preventScroll:true})}},[error,notice]);
   const primary=user.role==='primary';
   const load=useCallback(async()=>{const result=await api('admin/overview');setData(result)},[]);
   useEffect(()=>{let active=true,timer,controller;
@@ -29,7 +31,7 @@ export default function AdminConsole({user,onUpdated}) {
     if(busy)return false;
     if(confirmation&&!await new Promise(resolve=>setConfirmationBox({message:confirmation,resolve})))return false;
     setBusy(true);setError('');setNotice('');
-    try{await api('admin/manage',{...body,note});await load();setNotice('Modification enregistrée et partagée avec les appareils connectés.');return true}
+    try{await api('admin/manage',{...body,note});await load();setNotice(body.action==='driver.status'&&body.status==='approved'?'Chauffeur validé. Son compte peut maintenant recevoir les courses compatibles.':'Modification enregistrée et partagée avec les appareils connectés.');return true}
     catch(error){setError(error.message);return false}finally{setBusy(false)}
   }
   async function document(driver,kind){setBusy(true);setError('');try{const file=await api('drivers/document',{id:driver.id,kind});const link=documentCreateLink(file.data,driver.id+'-'+kind);link.click()}catch(error){setError(error.message)}finally{setBusy(false)}}
@@ -48,8 +50,8 @@ export default function AdminConsole({user,onUpdated}) {
     <div className="admin-top"><div><div className="eyebrow">EN ROUTE · CENTRE DE GESTION</div><h1>Tout votre réseau.<br/><span>Un seul tableau de bord.</span></h1><p>{primary?'Administrateur principal':'Administrateur secondaire'} · {user.name}</p></div><div className="admin-live"><span/>Actualisation toutes les 8 secondes<button className="link" onClick={()=>load().catch(error=>setError(error.message))}>Actualiser</button></div></div>
     <div className="admin-kpis">{[['Demandes en attente',waiting.length],['Courses en cours',active.length],['Dossiers à vérifier',data.applications.filter(driver=>driver.status==='pending').length],['Montant des courses terminées',money(data.rides.filter(ride=>ride.status==='completed').reduce((sum,ride)=>sum+ride.total,0))]].map(([label,value])=><article key={label}><span>{label}</span><strong>{value}</strong></article>)}</div>
     <nav className="admin-tabs" aria-label="Gestion de la plateforme">{tabs.map(([id,label])=><button key={id} className={tab===id?'selected':''} aria-current={tab===id?'page':undefined} onClick={()=>selectTab(id)}>{label}</button>)}</nav>
-    {error&&<p role="alert" className="auth-error">{error}</p>}{notice&&<p role="status" className="admin-notice">{notice}</p>}
-    {!['overview','profile','audit'].includes(tab)&&<label className="admin-reason">Motif de l’action<input value={note} onChange={event=>setNote(event.target.value)} maxLength="300" placeholder="Obligatoire pour annuler, suspendre ou supprimer"/></label>}
+    <div ref={feedbackRef} tabIndex={-1}>{error&&<p role="alert" className="auth-error">{error}</p>}{notice&&<p role="status" className="admin-notice">{notice}</p>}</div>
+    {!['overview','profile','audit'].includes(tab)&&<label className="admin-reason">Motif de l’action<input value={note} onChange={event=>setNote(event.target.value)} maxLength="300" placeholder="Facultatif pour valider ; obligatoire pour annuler, refuser, suspendre, remettre à vérifier ou supprimer"/></label>}
     {source.length>0&&<div className="admin-toolbar"><input aria-label="Rechercher dans cette rubrique" placeholder="Nom, numéro, trajet ou référence…" value={search} onChange={event=>{setSearch(event.target.value);setPage(1)}}/>{['rides','drivers'].includes(tab)&&<select aria-label="Filtrer par statut" value={filter} onChange={event=>{setFilter(event.target.value);setPage(1)}}><option value="all">Tous les statuts</option>{(tab==='rides'?['requested','accepted','completed','cancelled']:['pending','approved','rejected']).map(status=><option key={status} value={status}>{statuses[status]}</option>)}</select>}<span>{matches.length} résultat(s)</span></div>}
     {tab==='overview'&&<div className="admin-overview"><article><h2>Les demandes à traiter</h2><p>Affectez une demande à un chauffeur validé pour la confirmer.</p>{waiting.length?waiting.slice(-5).reverse().map(ride=><div className="admin-preview" key={ride.id}><div><strong>{ride.from} → {ride.to}</strong><p>{ride.passengerName||accountName(ride.ownerId)} · {money(ride.total)}</p></div><button className="primary" onClick={()=>{selectTab('rides');setSearch(ride.id)}}>Gérer</button></div>):<p>Aucune demande en attente.</p>}</article><article className="admin-dark"><div className="eyebrow">EXPLOITATION</div><h2>Des décisions claires.<br/>Des actions tracées.</h2><p>{data.applications.filter(driver=>driver.status==='approved').length} chauffeurs validés · {clients.length} clients et invités</p><p>Les montants affichés représentent les courses, pas des encaissements. {data.payments.label}.</p><button onClick={()=>selectTab('audit')}>Consulter le journal →</button></article></div>}
     {tab==='rides'&&<div className="admin-list">{visible.map(ride=>{
