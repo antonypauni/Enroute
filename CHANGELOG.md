@@ -1,3 +1,10 @@
+## 1.3.1 — 15 novembre 2026
+
+- Espace chauffeur dédié accessible directement par /#chauffeur.
+- Dépôt du dossier isolé des commandes et de la connexion client.
+- Connexion chauffeur identifiée, avec les identifiants choisis au dépôt.
+- Test du formulaire : dépôt, création de compte et transmission du statut sans ouverture de connexion.
+
 # Évolutions
 
 ## 2026-11-09

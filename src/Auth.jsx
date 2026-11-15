@@ -6,6 +6,7 @@ export function Auth({setup,audience='client',onDone,onClose}) {
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
   const admin=setup || audience==='admin';
+  const driver=audience==='driver'&&!admin;
   async function submit(event) {
     event.preventDefault();
     setBusy(true);setError('');
@@ -21,8 +22,8 @@ export function Auth({setup,audience='client',onDone,onClose}) {
   }
   return <div className="overlay"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
     <button className="close" onClick={onClose} aria-label="Fermer">×</button>
-    <div className="eyebrow">EN ROUTE · {admin?'ADMINISTRATION':'ESPACE CLIENT'}</div>
-    <h2 id="auth-title">{setup?'Configurer l’administrateur':register?'Créer mon compte client':admin?'Connexion administrateur':'Connexion client ou chauffeur'}</h2>
+    <div className="eyebrow">EN ROUTE · {admin?'ADMINISTRATION':driver?'ESPACE CHAUFFEUR':'ESPACE CLIENT'}</div>
+    <h2 id="auth-title">{setup?'Configurer l’administrateur':register?'Créer mon compte client':admin?'Connexion administrateur':driver?'Connexion chauffeur':'Connexion client'}</h2>
     <form onSubmit={submit}>
       {(setup||register)&&<label>Votre nom<input name="name" autoComplete="name" minLength="2" maxLength="60" required/></label>}
       <label>Adresse e-mail<input name="email" type="email" autoComplete="email" maxLength="180" required/></label>
@@ -30,7 +31,8 @@ export function Auth({setup,audience='client',onDone,onClose}) {
       {error&&<p role="alert" className="auth-error">{error}</p>}
       <button disabled={busy} className="primary full">{busy?'Connexion…':setup?'Créer l’administrateur':register?'Créer mon compte':'Se connecter'}</button>
     </form>
-    {!admin&&<button className="link" onClick={()=>{setRegister(!register);setError('')}}>{register?'J’ai déjà un compte':'Créer un compte client'}</button>}
+    {driver&&<p className="note">Utilisez l’adresse e-mail et le mot de passe choisis lors de l’envoi de votre dossier. Votre compte a été créé automatiquement à cet envoi.</p>}
+    {!admin&&!driver&&<button className="link" onClick={()=>{setRegister(!register);setError('')}}>{register?'J’ai déjà un compte':'Créer un compte client'}</button>}
   </section></div>;
 }
 export function Admin(props){return <AdminConsole {...props}/>;}
