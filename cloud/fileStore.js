@@ -1,3 +1,4 @@
+import {canPreviewRide} from '../server/driverOffers.js';
 import {decodeFile} from '../server/fileData.js';
 import {isAdmin} from '../server/access.js';
 
@@ -39,7 +40,7 @@ export async function privateData(env, file) {
 
 export async function ridePhoto(env,state,user,id) {
   const ride=(state.rides || []).find(ride=>ride.id===id);
-  if(!user || !ride || !(isAdmin(user)||ride.ownerId===user.id||ride.driverId===user.id)) throw Error('Photo indisponible pour ce compte.');
+  if(!user || !ride || !(isAdmin(user)||ride.ownerId===user.id||ride.driverId===user.id||canPreviewRide(state,user,ride))) throw Error('Photo indisponible pour ce compte.');
   if(!ride.photoKey && !ride.passengerPhoto)throw Error('Aucune photo pour cette course.');
   return {data:await privateData(env,ride.passengerPhoto || {key:ride.photoKey,mime:ride.photoMime})};
 }

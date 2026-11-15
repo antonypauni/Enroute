@@ -223,4 +223,19 @@ await test('Cloud : espèces restreintes, compte actif, règlement et bilan jour
  const overview=await call('/api/admin/overview',undefined,undefined,admin.data.token);assert.ok(overview.data.finance.dailyReports.length);assert.ok(overview.data.finance.dailyReports[0].totals.CDF.remittances>=28000);
 });
 
+await test('offres chauffeur : profil client visible, photo privée autorisée avant acceptation et téléphone masqué',async()=>{
+ const admin=await call('/api/mobile/admin/login',{email:'recovered@example.test',password:'New-strong-pass-123'});
+ const driver=await call('/api/mobile/login',{email:'independent-driver-b@example.test',password:'Auto-driver-pass-123'});
+ assert.equal((await call('/api/admin/manage',{action:'driver.status',id:driver.data.user.id,status:'approved',note:'Documents de test vérifiés'},undefined,admin.data.token)).status,200);
+ const guest=await call('/api/guest/session',{mobile:true});
+ const form={from:'Lemba',to:'Gombe',category:'standard',immediate:true,passengerName:'Client fictif visible',passengerPhone:'0812345678',pickupLandmark:'Départ fictif',destinationLandmark:'Arrivée fictive',passengerPhoto:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='};
+ const quote=await call('/api/rides/quote',form);const ride=await call('/api/rides/request',{...form,expectedTotal:quote.data.total},undefined,guest.data.token);assert.equal(ride.status,200);
+ const offers=await call('/api/rides/state',undefined,undefined,driver.data.token);const offer=offers.data.available.find(item=>item.id===ride.data.id);
+ assert.equal(offer.passengerName,form.passengerName);assert.equal(offer.hasPassengerPhoto,true);assert.equal(offer.passengerPhone,undefined);assert.equal(offer.photoKey,undefined);
+ const photo=await call('/api/rides/photo',{id:ride.data.id},undefined,driver.data.token);assert.equal(photo.status,200);assert.equal(photo.data.data,form.passengerPhoto);
+ assert.equal((await call('/api/rides/photo',{id:ride.data.id})).status,403);
+ assert.equal((await call('/api/rides/accept',{id:ride.data.id},undefined,driver.data.token)).status,200);
+ const own=await call('/api/rides/state',undefined,undefined,driver.data.token);assert.ok(own.data.rides.find(item=>item.id===ride.data.id).passengerPhone);assert.equal(own.data.available.length,0);
+});
+
 db.close();

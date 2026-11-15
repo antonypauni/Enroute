@@ -1,3 +1,10 @@
+## 1.6 — 15 novembre 2026
+
+- Espace chauffeur dédié aux demandes clients : nom, photo facultative, prix, passagers, lieux et carte avant acceptation.
+- Photo réservée aux chauffeurs validés et compatibles ; téléphone communiqué après acceptation.
+- Demandes masquées pendant une course en cours ; bascule mobile vers la course acceptée.
+- Dossier chauffeur conservé séparément. 68 tests automatisés réussis.
+
 ## 1.5 — 15 novembre 2026
 
 - 7 % En Route et 93 % chauffeurs visibles avec leurs montants dès la vue d’ensemble.
