@@ -1,3 +1,6 @@
+En Route 1.7.1 — 16 novembre 2026
+Actualisation des demandes chauffeur sur tous les onglets mobiles, reprise immédiate au premier plan et après retour du réseau sur le site. Compteur global des demandes compatibles, état de connexion et dernière actualisation visibles. Surveillance toutes les 1,5 à 2 secondes tant que l’application est active ; dépend de la connexion.
+
 # Version 1.7 — 15 novembre 2026
 - Disponibilité chauffeur en ligne/hors ligne, sans interrompre la course active.
 - Étapes partagées : chauffeur arrivé, client à bord, course terminée.

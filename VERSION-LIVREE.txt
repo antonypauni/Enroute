@@ -1,3 +1,6 @@
+En Route 1.7.1 — 16 novembre 2026
+Actualisation des demandes chauffeur sur tous les onglets mobiles, reprise immédiate au premier plan et après retour du réseau sur le site. Compteur global des demandes compatibles, état de connexion et dernière actualisation visibles. Surveillance toutes les 1,5 à 2 secondes tant que l’application est active ; dépend de la connexion.
+
 En Route 1.7 — 15 novembre 2026
 Commission En Route : 7 % ; chauffeurs : 93 %. Pourcentages et montants visibles dans la vue d’ensemble web et mobile.
 Encaissements espèces/électroniques séparés, caisse entreprise/espèces chauffeurs, remises et versements tracés.

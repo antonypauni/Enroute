@@ -1,5 +1,6 @@
 import {rideStatusLabel,nextRideStep} from './rideExperience.mjs';
 import {isCashRide} from './ridePayment.mjs';
+import {createLiveRefresh} from './liveRefresh.mjs';
 import PaymentMethods from './PaymentMethods';
 import {ridePaymentLabel} from './ridePayment.mjs';
 import {acceptRide,connectionMessage,performRideAction} from './rideAcceptance.mjs';
@@ -10,7 +11,7 @@ import DriverTracking from './DriverTracking';
 import {centers,inServiceArea,closestCommune} from './places';
 import * as Location from 'expo-location';
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {ActivityIndicator, AppState, Alert, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {StatusBar} from 'expo-status-bar';
 import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -94,6 +95,7 @@ export default function App() {
   const [justAccepted,setJustAccepted]=useState(null);
   const [financialStatus,setFinancialStatus]=useState(null);
   const [driverOnline,setDriverOnline]=useState(true);
+  const [liveError,setLiveError]=useState(''),[lastSync,setLastSync]=useState(null);
   const [expandedOffer,setExpandedOffer]=useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -149,25 +151,16 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!session || !['trips','offers'].includes(page)) return;
-    let active = true;
-    let timer;
-    async function poll() {
-      try {
-        const revision=rideRevision.current;
-        const data = await request('rides/state', undefined, session);
-        if (active&&revision===rideRevision.current) {setRides(data.rides || []);setAvailable(data.available || []);setFinancialStatus(data.financialStatus||null);setDriverOnline(data.application?.online!==false);}
-      } catch (error) {
-        if (active) setError(connectionMessage(error));
-      } finally {
-        if (active) timer = setTimeout(poll, 2000);
-      }
-    }
-    poll();
-    return () => {active = false;clearTimeout(timer);};
-  }, [session,page]);
-
-
+    if (!session || !(account?.accountType==='driver'||['trips','offers'].includes(page))) return;
+    const live=createLiveRefresh({
+      read:async()=>({revision:rideRevision.current,data:await request('rides/state',undefined,session)}),
+      onData:({revision,data})=>{if(revision!==rideRevision.current)return;setRides(data.rides||[]);setAvailable(data.available||[]);setFinancialStatus(data.financialStatus||null);setDriverOnline(data.application?.online!==false);setLiveError('');setLastSync(Date.now());},
+      onError:error=>setLiveError(connectionMessage(error))
+    });
+    live.refresh();
+    const subscription=AppState.addEventListener('change',state=>{if(state==='active')live.refresh()});
+    return()=>{live.stop();subscription.remove();};
+  },[session,page,account?.accountType]);
 
   function navigate(next) {
     if (busy) return;
@@ -284,7 +277,8 @@ export default function App() {
     <StatusBar style="dark" />
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       <Text style={styles.brand}>En Route <Text style={styles.arrow}>↗</Text></Text>
-      <Text style={{color:muted,fontSize:11}}>Version 1.6 · Espace chauffeur</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:(account?.accountType==='driver'?[['offers','Demandes clients'],['trips','Mes courses'],['driver','Dossier'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']])).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
+      <Text style={{color:muted,fontSize:11}}>Version 1.7.1 · Demandes en direct</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:(account?.accountType==='driver'?[['offers','Demandes clients ('+available.length+')'],['trips','Mes courses'],['driver','Dossier'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']])).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
+      {session&&account?.accountType==='driver'&&<View style={styles.card}><Text accessibilityLiveRegion="polite" style={styles.body}>{liveError?'Actualisation interrompue : '+liveError:lastSync?'Demandes actualisées à '+new Date(lastSync).toLocaleTimeString('fr-FR'):'Connexion aux demandes…'}</Text>{available.length>0&&page!=='offers'&&<Button onPress={()=>navigate('offers')}>{available.length} demande(s) à accepter · Voir les clients</Button>}</View>}
       {financialStatus&&account?.accountType==='driver'&&<View style={styles.card}><Text style={styles.cardTitle}>{financialStatus.cashRestricted?'Compte actif · courses électroniques uniquement':'Votre commission cumulée'}</Text><Text style={styles.body}>{financialStatus.debtCDF.toLocaleString('fr-FR')} FC · seuil {financialStatus.thresholdCDF.toLocaleString('fr-FR')} FC{financialStatus.debtUSD>0?' · '+(financialStatus.debtUSD/100).toFixed(2)+' USD':''}</Text><Text style={styles.body}>{financialStatus.cashRestricted?'Les nouvelles courses en espèces sont indisponibles. Continuez les courses électroniques confirmées ; les espèces reviennent après régularisation de la commission.':'Les 7 % s’accumulent sans virement après chaque course.'}</Text></View>}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       {notice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
