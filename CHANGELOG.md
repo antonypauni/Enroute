@@ -1,3 +1,6 @@
+En Route 1.8.0 — 18 novembre 2026
+Nouvelle réservation en deux étapes, carte au premier plan, illustrations des catégories et présentation des demandes chauffeur. Données, calculs et contrôle des paiements conservés. Tests réels de course à effectuer séparément.
+
 En Route 1.7.1 — 16 novembre 2026
 Actualisation des demandes chauffeur sur tous les onglets mobiles, reprise immédiate au premier plan et après retour du réseau sur le site. Compteur global des demandes compatibles, état de connexion et dernière actualisation visibles. Surveillance toutes les 1,5 à 2 secondes tant que l’application est active ; dépend de la connexion.
 
