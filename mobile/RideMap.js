@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {Linking,StyleSheet,Text,View} from 'react-native';
 import {WebView} from 'react-native-webview';
 
-const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><style>html,body,#map{height:100%;margin:0;background:#edf2e8}.leaflet-tooltip{font-family:Arial;font-weight:600}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
+const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><style>html,body,#map{height:100%;margin:0;background:#edf2e8}.leaflet-tile-pane{filter:saturate(.65) contrast(.96)}.leaflet-tooltip{font-family:Arial;font-weight:600;border:1px solid #d9e3da;border-radius:10px;padding:7px 11px;background:#fff;color:#173e36;box-shadow:0 4px 12px #173e3615}.leaflet-bar{border:0;border-radius:12px;overflow:hidden;box-shadow:0 4px 14px #173e3622}.leaflet-bar a{color:#174e39;width:36px;height:36px;line-height:36px}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
 if(window.L){
 const map=L.map('map').setView([-4.36,15.32],12),markers=L.layerGroup().addTo(map);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
@@ -49,4 +49,4 @@ export default function RideMap({pickup,destination,driver,selectTarget,onPoint}
     <Text style={styles.credit}>Carte OpenStreetMap · Internet requis. Les repères de commune sont approximatifs tant qu’aucun point précis n’est choisi.</Text>
   </View>;
 }
-const styles=StyleSheet.create({container:{overflow:'hidden',borderRadius:20,borderWidth:1,borderColor:'#dde6d9'},map:{height:290,backgroundColor:'#edf2e8'},credit:{fontSize:11,lineHeight:16,color:'#52665d',padding:10},error:{fontSize:13,color:'#8a3523',padding:12}});
+const styles=StyleSheet.create({container:{overflow:'hidden',borderRadius:24,borderWidth:1,borderColor:'#dbe5dc'},map:{height:290,backgroundColor:'#edf2e8'},credit:{fontSize:11,lineHeight:16,color:'#52665d',padding:10},error:{fontSize:13,color:'#8a3523',padding:12}});

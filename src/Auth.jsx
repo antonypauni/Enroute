@@ -20,10 +20,12 @@ export function Auth({setup,audience='client',onDone,onClose}) {
     } catch(error) {setError(error.message)}
     finally {setBusy(false)}
   }
-  return <div className="overlay"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+  return <div className="overlay"><section className="modal auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title">
     <button className="close" onClick={onClose} aria-label="Fermer">×</button>
-    <div className="eyebrow">EN ROUTE · {admin?'ADMINISTRATION':driver?'ESPACE CHAUFFEUR':'ESPACE CLIENT'}</div>
+    <div className="auth-mark" aria-hidden="true">{admin?'◇':driver?'↗':'○'}</div>
+    <div className="eyebrow">Enroute · {admin?'ADMINISTRATION':driver?'ESPACE CHAUFFEUR':'ESPACE CLIENT'}</div>
     <h2 id="auth-title">{setup?'Configurer l’administrateur':register?'Créer mon compte client':admin?'Connexion administrateur':driver?'Connexion chauffeur':'Connexion client'}</h2>
+    <p className="auth-intro">{admin?'Pilotez les chauffeurs, les courses et les encaissements.':driver?'Retrouvez vos demandes et prenez la route.':'Retrouvez vos courses et préparez votre prochain départ.'}</p>
     <form onSubmit={submit}>
       {(setup||register)&&<label>Votre nom<input name="name" autoComplete="name" minLength="2" maxLength="60" required/></label>}
       <label>Adresse e-mail<input name="email" type="email" autoComplete="email" maxLength="180" required/></label>

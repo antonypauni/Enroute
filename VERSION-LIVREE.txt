@@ -1,3 +1,6 @@
+Enroute 1.8.1 — 18 novembre 2026
+Courses actives séparées de l’historique sur site et mobile, filtres administration par défaut, accès client/chauffeur/admin et carte harmonisés. Aucun effacement des données comptables.
+
 En Route 1.8.0 — 18 novembre 2026
 Nouvelle réservation en deux étapes, carte au premier plan, illustrations des catégories et présentation des demandes chauffeur. Données, calculs et contrôle des paiements conservés. Tests réels de course à effectuer séparément.
 
