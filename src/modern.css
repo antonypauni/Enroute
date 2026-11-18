@@ -1,0 +1,40 @@
+/* Shared visual direction: forest, ivory and warm yellow. */
+:root{font-family:Inter,"Segoe UI",Arial,sans-serif;color:#123d34;background:#f5f7f6;font-synthesis:none;--forest:#103e34;--accent:#f2d66c;--line:#dfe7e3;--muted:#596e66}
+body{background:radial-gradient(ellipse at 90% 0%,#e8f0e9 0,transparent 44%),#f5f7f6}
+button,a,input,select{touch-action:manipulation}
+button{transition:background-color .18s,box-shadow .18s,transform .18s}
+button:disabled{cursor:not-allowed}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #b58b17;outline-offset:4px}
+header{max-width:1320px;height:94px;border-bottom:1px solid var(--line)}
+.brand{letter-spacing:-1.3px}.brand b{width:40px;height:40px;border-radius:14px;background:var(--forest);color:var(--accent)}
+nav button{font-size:13px;font-weight:600;color:var(--muted)}
+nav .active{border-color:var(--forest);color:var(--forest)}
+main{max-width:1280px}.primary{background:var(--forest);border-radius:14px;min-height:46px;font-size:14px;padding:15px 23px;box-shadow:0 5px 14px #103e3412}
+.primary:hover:not(:disabled){background:#205c4c;box-shadow:0 8px 20px #103e3424}
+.eyebrow{color:#42695a;font-size:11px;letter-spacing:2px}.muted{color:var(--muted)}
+.ride-center{padding-top:48px}.ride-center>h1{font-size:clamp(42px,6vw,76px);letter-spacing:-3px;line-height:1.04;max-width:800px}
+.ride-center>h1 span{color:#437c62}.ride-center>p{font-size:16px;color:var(--muted)}
+.ride-assurances{gap:12px;margin:25px 0 32px}.ride-assurances>span{background:#e8eee9;border:1px solid #dce6df;padding:10px 15px;border-radius:100px;color:#315b49}
+.ride-center>form.ride-checkout{padding:clamp(20px,4vw,40px);gap:24px;border-radius:28px;border:1px solid #dce5e0;box-shadow:0 20px 60px #133d3408}
+.ride-center .form-grid label{font-size:13px;color:#3d584d;gap:10px}
+.ride-center .form-grid input:not([type=checkbox]),.ride-center .form-grid select{background:#f4f7f5;border-color:#dfe7e3;border-radius:14px;min-height:54px;font-size:16px;padding:14px 16px}
+.ride-category legend{font-size:20px;letter-spacing:-.5px}.ride-category button{border-radius:20px;background:#f8faf9;border-color:#dfe7e3;min-height:145px}
+.ride-category button.selected{border-color:#245c49;background:#edf5ee;box-shadow:inset 0 0 0 1px #245c49}
+.ride-category strong{font-size:21px}.ride-category small{color:#536b5f}.car-symbol{color:var(--forest)}
+.ride-checkout .fare-box{background:var(--forest);border-radius:22px;padding:28px}.ride-checkout .fare-box strong{color:var(--accent)}
+.ride-center>form>.primary{min-height:56px;font-size:16px;padding:17px 28px}
+.ride-map{border-radius:20px;border-color:var(--line);box-shadow:0 6px 24px #103e3408}.ride-map small{color:#53695f;background:#fff;font-size:12px}
+.driver-space-nav{gap:8px}.driver-space-nav button{padding:13px 20px;border:1px solid var(--line);background:#fff;color:var(--forest);font-size:14px}.driver-space-nav .primary{background:var(--forest);color:#fff;border-color:var(--forest)}
+.driver-availability{background:#edf5ef;border-color:#d0e0d5;padding:24px;border-radius:22px}
+.driver-offers h2{font-size:32px}.driver-offers-grid>article{border-color:var(--line);border-radius:24px;box-shadow:0 10px 35px #103e3407}
+.offer-avatar{background:#f7e8a8;color:#384829}.offer-price{font-size:25px}.offer-route{background:#f4f7f5;border-left:3px solid var(--accent);border-radius:0 16px 16px 0}.offer-route span{color:#526b5f}
+.driver-offers-empty,.empty{background:#edf2ee;color:#466356;border:1px dashed #bdcfc2;border-radius:20px}
+.ride-center>.grid article{border-radius:22px;border-color:var(--line);box-shadow:0 7px 24px #103e3405}
+.modal{background:#fff;border-radius:26px;box-shadow:0 24px 100px #0c302533}.modal input,.modal select{font-size:16px;min-height:50px;border-radius:12px;background:#f4f7f5}.modal label{color:#476252;font-size:13px}
+.overlay{background:#0a2c2566;backdrop-filter:blur(8px)}.close{min-width:44px;min-height:44px}.note{color:#5c7065}
+.finance-hero{background:var(--forest);border-radius:26px}.finance-hero h2 span{color:var(--accent)}.finance-section{border-color:var(--line);box-shadow:0 8px 30px #103e3404}
+.finance-balances article{border-color:var(--line)}.finance-income article{background:#edf5ee}.finance-split span{background:#e6c75b}
+.hero h1 em{color:#437c62}.banner{background:#e8f0e9;border-radius:24px}.steps p,.hero p{color:var(--muted)}
+footer{padding:30px 0;color:#5d7167;font-size:12px}.toast{border-radius:16px;background:var(--forest);font-size:14px}
+@media(max-width:600px){header{height:auto;padding:18px 20px;gap:14px}header nav{gap:18px;overflow-x:auto;justify-content:flex-start}header nav button{white-space:nowrap;min-height:44px;font-size:12px}main{padding:0 18px}.ride-center{padding-top:30px}.ride-center>h1{font-size:46px;letter-spacing:-2px}.ride-center>p{font-size:15px}.ride-assurances{gap:8px;font-size:11px}.ride-assurances>span{padding:8px 10px}.ride-center>form.ride-checkout{padding:20px 16px;border-radius:22px;gap:20px}.ride-category>div{gap:8px}.ride-category button{padding:13px 10px;min-height:132px;border-radius:16px}.ride-category button.selected{padding:12px 9px}.ride-category strong{font-size:16px}.ride-category small{font-size:11px}.ride-center>form>.primary{width:100%;min-width:0}.driver-space-nav{padding:0}.driver-space-nav button{flex:1;font-size:12px;padding:12px}.offer-price{font-size:23px}.modal{padding:30px 20px}.form-grid{min-width:0}footer{margin:0 18px}}
+@media(prefers-reduced-motion:reduce){button{transition:none}html{scroll-behavior:auto}}

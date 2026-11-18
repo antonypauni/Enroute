@@ -17,6 +17,7 @@ import Pickup from './Pickup';
 import KinPanel from './KinPanel';
 import{communes}from'./kin';
 import './style.css';
+import './modern.css';
 function App(){
 const[trips,T]=useState([]),[bookings,B]=useState([]),[view,V]=useState(location.hash==='#administration'?'admin':location.hash==='#chauffeur'?'driver':'rides'),[modal,M]=useState(null),[msg,S]=useState(''),[query,Q]=useState(null),[currency,C]=useState('ALL');
 const[user,User]=useState(null),[authOpen,AO]=useState(location.hash==='#administration'||location.hash==='#inscription'),[setup,Setup]=useState(false),[pickup,PU]=useState(null);
