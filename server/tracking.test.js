@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {rideAction,rideState} from './rides.js';
 import {rideForViewer,ridePoints,trackingAction} from './tracking.js';
 
-function fixture(){return {drivers:[{id:'driver',status:'approved',category:'standard'}],rides:[{id:'ride',ownerId:'passenger',driverId:'driver',category:'standard',status:'accepted'}]}}
+function fixture(){return {drivers:[{id:'driver',status:'approved',category:'standard'}],rides:[{id:'ride',ownerId:'passenger',driverId:'driver',category:'standard',total:12000,status:'accepted'}]}}
 test('GPS réservé au chauffeur affecté et validé, points précis contrôlés',()=>{
   const state=fixture(),input={id:'ride',point:[-4.34,15.32],accuracy:10,timestamp:100000};
   assert.throws(()=>trackingAction('/api/rides/location',input,state,{id:'passenger'},100000));
@@ -32,7 +32,7 @@ test('confidentialité et suppression du GPS en fin de course',async()=>{
   trackingAction('/api/rides/location',{id:'ride',point:[-4.34,15.32],accuracy:10,timestamp:Date.now()},state,{id:'driver'});
   assert.equal(rideState(state,{id:'stranger'}).rides.length,0);
   assert.ok(rideState(state,{id:'passenger'}).rides[0].driverLocation);
-  await rideAction('/api/rides/complete',{id:'ride'},state,{id:'driver'});
+  await rideAction('/api/rides/complete',{id:'ride',cashReceived:true},state,{id:'driver',role:'client'});
   assert.equal(state.rides[0].driverLocation,undefined);
   await assert.rejects(rideAction('/api/rides/location',{id:'ride'},state,{id:'driver'}));
 });

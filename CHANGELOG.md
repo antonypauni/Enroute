@@ -1,3 +1,9 @@
+## 1.8.4 — 19 novembre 2026
+
+- Encaissement obligatoire avant clôture chauffeur : confirmation explicite des espèces ou règlement électronique confirmé côté serveur.
+- Suppression du choix de clôture sans encaissement sur site et mobile. En cas de refus, la course et son GPS restent actifs.
+- Enregistrement atomique de la déclaration et de la fin de course ; pas de double encaissement lors d’une nouvelle tentative.
+
 ## 1.8.3 — 19 novembre 2026
 
 - Suivi passager prioritaire après commande, y compris invité : recherche, chauffeur, trajet et fin sans rechercher la carte en bas.

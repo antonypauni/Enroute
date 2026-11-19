@@ -21,6 +21,6 @@ test('le passager voit son chauffeur d√®s acceptation, puis uniquement un GPS r√
  assert.equal(rideState(state,passenger).rides[0].locationStatus,'live');
  ride.driverLocation.receivedAt=Date.now()-31000;
  view=rideState(state,passenger);assert.equal(view.rides[0].locationStatus,'stale');assert.equal(view.rides[0].driverLocation,null);
- await rideAction('/api/rides/complete',{id:'ride'},state,{id:'driver'});
+ await rideAction('/api/rides/complete',{id:'ride',cashReceived:true},state,{id:'driver',role:'client'});
  assert.equal(rideState(state,passenger).rides[0].assignedDriver,null);
 });

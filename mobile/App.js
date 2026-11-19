@@ -5,7 +5,7 @@ import {createRideVoice} from './rideVoice.mjs';
 import {matchesRideView} from './rideVisibility.mjs';
 import VehicleArt from './VehicleArt';
 import {rideStatusLabel,nextRideStep} from './rideExperience.mjs';
-import {isCashRide} from './ridePayment.mjs';
+import {isCashRide,canReceiveRidePayment} from './ridePayment.mjs';
 import {createLiveRefresh} from './liveRefresh.mjs';
 import PaymentMethods from './PaymentMethods';
 import {ridePaymentLabel} from './ridePayment.mjs';
@@ -255,15 +255,22 @@ export default function App() {
     if(action==='progress'||action==='complete'){
       const ride=await performRideAction({send:(path,body)=>request(path,body,session),readState:()=>request('rides/state',undefined,session),rideId:id,userId:account?.id,action,extra});
       rideRevision.current++;setRides(previous=>previous.map(item=>item.id===id?ride:item));
-      setNotice(action==='complete'?'Course terminée.'+(ride.cashCollectionConfirmed?' Déclaration des espèces enregistrée.':' Aucun nouvel encaissement déclaré.'):rideStatusLabel(ride));return;
+      setNotice(action==='complete'?'Course terminée.'+(ride.cashCollectionConfirmed?' Déclaration des espèces enregistrée.':' Paiement électronique confirmé.'):rideStatusLabel(ride));return;
     }
     await request(`rides/${action}`,{id,...extra},session);
     await refresh();
   }
 
   function confirmCompletion(ride){
-    const finish=cashReceived=>run(()=>updateRide('complete',ride.id,{cashReceived}));
-    Alert.alert('Terminer la course',isCashRide(ride)?fare(ride.total)+' · As-tu reçu les espèces restant dues ? La déclaration alimente le registre et la commission cumulée de 7 %.':'Confirmer la fin du trajet ?',isCashRide(ride)?[{text:'Revenir',style:'cancel'},{text:'Terminer sans encaissement',onPress:()=>finish(false)},{text:'Espèces reçues',onPress:()=>finish(true)}]:[{text:'Revenir',style:'cancel'},{text:'Terminer',onPress:()=>finish(false)}]);
+    const cash=isCashRide(ride);
+    if(!cash&&!canReceiveRidePayment(null,ride)){
+      Alert.alert('Paiement en attente','La course reste en cours. Le règlement électronique doit être confirmé avant de pouvoir la terminer.');return;
+    }
+    const finish=()=>run(()=>updateRide('complete',ride.id,{cashReceived:cash}));
+    Alert.alert('Confirmer l’encaissement',cash?fare(ride.total)+' · Confirme uniquement après avoir reçu les espèces restant dues. Sans paiement, reviens à la course. La déclaration alimente le bilan et la commission de 7 %.':'Paiement électronique confirmé. Terminer la course ?',[
+      {text:'Revenir à la course',style:'cancel'},
+      {text:cash?'Espèces reçues · terminer':'Terminer la course',onPress:finish},
+    ]);
   }
 
   function confirmGuestDeletion() {
@@ -302,7 +309,7 @@ export default function App() {
     <StatusBar style="dark" />
     <ScrollView ref={rideScroll} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       <Text style={styles.brand}>Enroute <Text style={styles.arrow}>↗</Text></Text>
-      <Text style={{color:muted,fontSize:11}}>Version 1.8.3 · Enroute</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:(account?.accountType==='driver'?[['offers','Demandes clients ('+available.length+')'],['trips','Mes courses'],['driver','Dossier'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']])).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
+      <Text style={{color:muted,fontSize:11}}>Version 1.8.4 · Enroute</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:(account?.accountType==='driver'?[['offers','Demandes clients ('+available.length+')'],['trips','Mes courses'],['driver','Dossier'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']])).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
       {session&&account?.accountType==='driver'&&<View style={styles.card}><Text accessibilityLiveRegion="polite" style={styles.body}>{liveError?'Actualisation interrompue : '+liveError:lastSync?'Demandes actualisées à '+new Date(lastSync).toLocaleTimeString('fr-FR'):'Connexion aux demandes…'}</Text>{available.length>0&&page!=='offers'&&<Button onPress={()=>navigate('offers')}>{available.length} demande(s) à accepter · Voir les clients</Button>}</View>}
       {financialStatus&&account?.accountType==='driver'&&<View style={styles.card}><Text style={styles.cardTitle}>{financialStatus.cashRestricted?'Compte actif · courses électroniques uniquement':'Votre commission cumulée'}</Text><Text style={styles.body}>{financialStatus.debtCDF.toLocaleString('fr-FR')} FC · seuil {financialStatus.thresholdCDF.toLocaleString('fr-FR')} FC{financialStatus.debtUSD>0?' · '+(financialStatus.debtUSD/100).toFixed(2)+' USD':''}</Text><Text style={styles.body}>{financialStatus.cashRestricted?'Les nouvelles courses en espèces sont indisponibles. Continuez les courses électroniques confirmées ; les espèces reviennent après régularisation de la commission.':'Les 7 % s’accumulent sans virement après chaque course.'}</Text></View>}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}

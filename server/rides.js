@@ -51,7 +51,12 @@ const r={...ridePoints(f),...contact,...photo,pickupLandmark,destinationLandmark
  if(f.cashReceived!==undefined&&typeof f.cashReceived!=='boolean')throw Error('Confirmez explicitement si les espèces ont été reçues.');
  if(r.status==='completed'){if(f.cashReceived===true&&!r.cashCollectionConfirmed)throw Error('Cette course est déjà terminée. Faites vérifier son règlement par l’administration.');return r;}
  if(f.cashReceived===true&&!isCashRide(r))throw Error('Un paiement électronique ne peut pas être déclaré comme espèces reçues.');
- r.status='completed';delete r.driverLocation;snapshotCompletedRide(state,r);
- if(f.cashReceived===true){const entry=recordDriverCash(state,r,user);r.cashCollectionConfirmed=true;r.cashCollectionEntryId=entry.id||null;if(!entry.replayed){recordAdminEvent(state,user,'ride.cash.declared',r.id,'Espèces reçues déclarées par le chauffeur à la fin de course.');for(const change of entry.holdChanges||[])recordAdminEvent(state,user,change.cashRestricted?'driver.cash.restrict':'driver.cash.restore',change.id,change.cashRestricted?'Seuil atteint : courses électroniques uniquement.':'Commission régularisée : espèces rétablies.');}}
- return r;
+ if(isCashRide(r)&&f.cashReceived!==true)throw Error('Confirmez la réception des espèces avant de terminer la course.');
+ if(!isCashRide(r)&&!canReceiveRidePayment(null,r))throw Error('Le paiement électronique doit être confirmé avant de terminer la course.');
+ // Commit the receipt and completion together; a failed receipt leaves the ride active.
+ const draft=structuredClone(state),completed=draft.rides.find(ride=>ride.id===r.id);
+ completed.status='completed';delete completed.driverLocation;snapshotCompletedRide(draft,completed);
+ if(f.cashReceived===true){const entry=recordDriverCash(draft,completed,user);completed.cashCollectionConfirmed=true;completed.cashCollectionEntryId=entry.id||null;if(!entry.replayed){recordAdminEvent(draft,user,'ride.cash.declared',r.id,'Espèces reçues déclarées par le chauffeur à la fin de course.');for(const change of entry.holdChanges||[])recordAdminEvent(draft,user,change.cashRestricted?'driver.cash.restrict':'driver.cash.restore',change.id,change.cashRestricted?'Seuil atteint : courses électroniques uniquement.':'Commission régularisée : espèces rétablies.');}}
+ Object.assign(state,draft);
+ return completed;
 }if(path==='/api/rides/rate'){if(r.ownerId!==user.id||r.status!=='completed'||r.rating||!Number.isInteger(f.rating)||f.rating<1||f.rating>5)throw Error('Note indisponible.');r.rating=f.rating;const d=state.drivers.find(d=>d.id===r.driverId),ratings=state.rides.filter(x=>x.driverId===r.driverId&&x.rating).map(x=>x.rating);d.rating=Math.round(ratings.reduce((a,b)=>a+b,0)/ratings.length*10)/10;return r;}throw Error('Action introuvable.');}

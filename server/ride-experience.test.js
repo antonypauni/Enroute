@@ -14,7 +14,7 @@ test('disponibilité : hors ligne masque les demandes et bloque une nouvelle acc
  assert.throws(()=>manageAdmin(state,{action:'ride.assign',id:'ride',driverId:'driver'},admin),/hors ligne/);
  await assert.rejects(rideAction('/api/drivers/availability',{online:'true'},state,driver));
  await rideAction('/api/drivers/availability',{online:true},state,driver);await rideAction('/api/rides/accept',{id:'ride'},state,driver);
- await rideAction('/api/drivers/availability',{online:false},state,driver);await rideAction('/api/rides/complete',{id:'ride'},state,driver);assert.equal(state.rides[0].status,'completed');
+ await rideAction('/api/drivers/availability',{online:false},state,driver);await rideAction('/api/rides/complete',{id:'ride',cashReceived:true},state,driver);assert.equal(state.rides[0].status,'completed');
 });
 test('étapes : arrivée puis client à bord, réservées au chauffeur affecté et sans doublon de date',async()=>{
  const state=fixture();await rideAction('/api/rides/accept',{id:'ride'},state,driver);
@@ -33,11 +33,30 @@ test('fin avec espèces : déclaration attribuée au chauffeur, commission cumul
  assert.ok(state.adminAudit.some(event=>event.action==='ride.cash.declared'));
  assert.throws(()=>recordDriverCash(state,state.rides[0],{id:'other',role:'client'}));
 });
-test('fin sans espèces et paiement électronique : aucune recette fictive',async()=>{
+test('sans encaissement : clôture refusée sans toucher au trajet, GPS ou registre',async()=>{
  const state=fixture();await rideAction('/api/rides/accept',{id:'ride'},state,driver);
- await assert.rejects(rideAction('/api/rides/complete',{id:'ride',cashReceived:'true'},state,driver));
- await rideAction('/api/rides/complete',{id:'ride',cashReceived:false},state,driver);assert.equal(financeOverview(state).entries.length,0);
- await assert.rejects(rideAction('/api/rides/complete',{id:'ride',cashReceived:true},state,driver),/déjà terminée/);
+ state.rides[0].driverLocation={point:[-4.3,15.3],receivedAt:Date.now()};
+ for(const extra of [{},{cashReceived:false},{cashReceived:'true'},{cashReceived:false,paymentStatus:'paid',paymentSource:'merchant'}]){
+  const before=structuredClone(state);
+  await assert.rejects(rideAction('/api/rides/complete',{id:'ride',...extra},state,driver));
+  assert.deepEqual(state,before);
+ }
+});
+test('électronique : confirmation fiable obligatoire, sans recette espèces fictive',async()=>{
+ for(const source of ['merchant','admin_verified','client',undefined])for(const status of ['paid','pending','failed']){
+  const state=fixture();Object.assign(state.rides[0],{driverId:'driver',status:'accepted',paymentMethod:'mpesa',paymentStatus:status,paymentSource:source});
+  const before=structuredClone(state);
+  if(status==='paid'&&['merchant','admin_verified'].includes(source)){
+   await rideAction('/api/rides/complete',{id:'ride'},state,driver);assert.equal(state.rides[0].status,'completed');assert.equal(financeOverview(state).entries.length,0);
+  }else{
+   await assert.rejects(rideAction('/api/rides/complete',{id:'ride',paymentStatus:'paid',paymentSource:'merchant'},state,driver),/paiement électronique/);assert.deepEqual(state,before);
+  }
+ }
+});
+test('échec de déclaration : aucune clôture partielle',async()=>{
+ const state=fixture();await rideAction('/api/rides/accept',{id:'ride'},state,driver);state.rides[0].total=-1;
+ const before=structuredClone(state);
+ await assert.rejects(rideAction('/api/rides/complete',{id:'ride',cashReceived:true},state,driver));assert.deepEqual(state,before);
 });
 test('réponse perdue : fin et étape réconciliées sans deuxième POST',async()=>{
  for(const [action,extra,ride] of [['complete',{cashReceived:true},{id:'ride',driverId:'driver',status:'completed',cashCollectionConfirmed:true}],['progress',{stage:'arrived'},{id:'ride',driverId:'driver',status:'accepted',progress:'in_progress'}]]){
