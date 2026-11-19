@@ -1,3 +1,5 @@
+import * as Speech from 'expo-speech';
+import {createRideVoice} from './rideVoice.mjs';
 import {matchesRideView} from './rideVisibility.mjs';
 import VehicleArt from './VehicleArt';
 import {rideStatusLabel,nextRideStep} from './rideExperience.mjs';
@@ -73,6 +75,17 @@ export default function App() {
   const [account, setAccount] = useState(null);
   const [rides, setRides] = useState([]);
   const [available, setAvailable] = useState([]);
+  const voiceTracker = useRef(null);
+  const voiceIdentityChanged = useRef(false);
+  useEffect(()=>{
+    voiceIdentityChanged.current=true;
+    voiceTracker.current=createRideVoice(text=>{if(AppState.currentState==='active')Speech.speak(text,{language:'fr-FR',rate:1,volume:1});});
+    return()=>{voiceTracker.current=null;Speech.stop().catch(()=>{});};
+  },[account?.id]);
+  useEffect(()=>{
+    if(voiceIdentityChanged.current){voiceIdentityChanged.current=false;return;}
+    if(account?.id && !['primary','secondary'].includes(account.role)) voiceTracker.current?.({rides,available},account.accountType==='driver');
+  },[rides,available,account]);
   const [from, setFrom] = useState('Lemba');
   const [to, setTo] = useState('Gombe');
   const [category, setCategory] = useState('standard');

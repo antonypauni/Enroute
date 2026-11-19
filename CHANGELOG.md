@@ -1,3 +1,9 @@
+## 1.8.2 — 19 novembre 2026
+
+- Annonces vocales automatiques en français : demandes chauffeur, acceptation, arrivée, départ, fin et annulation.
+- Site et mobile : déduplication des actualisations, historique silencieux, clients invités inclus.
+- Lecture au premier plan ; sur navigateur, une interaction ordinaire peut être nécessaire. Sur iPhone, désactiver le mode silencieux.
+
 Enroute 1.8.1 — 18 novembre 2026
 Courses actives séparées de l’historique sur site et mobile, filtres administration par défaut, accès client/chauffeur/admin et carte harmonisés. Aucun effacement des données comptables.
 
