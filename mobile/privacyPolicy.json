@@ -1,0 +1,74 @@
+{
+  "title": "Politique de confidentialité",
+  "updated": "19 novembre 2026",
+  "draft": true,
+  "sections": [
+    {
+      "title": "À propos de cette politique",
+      "paragraphs": [
+        "Cette politique décrit les traitements actuellement mis en œuvre dans le site et l’application Enroute, pour les passagers avec ou sans compte, les chauffeurs et les administrateurs.",
+        "Version provisoire : le nom légal de l’exploitant, son adresse de contact, les durées de conservation et les modalités applicables aux demandes de droits doivent être finalisés avant la publication dans les boutiques. Aucun contact fictif n’est utilisé."
+      ]
+    },
+    {
+      "title": "Données utilisées et finalités",
+      "paragraphs": [
+        "Pour commander : nom du passager, numéro de téléphone, photo facultative, communes, lieux précis, coordonnées de départ et d’arrivée, nombre de passagers et catégorie du véhicule. Ces informations permettent de rechercher un chauffeur, organiser et suivre la course.",
+        "Pour un compte : nom, e-mail, identifiants de session et empreinte du mot de passe. Le mode invité utilise également une session pour retrouver les commandes sur le même appareil.",
+        "Pour les chauffeurs : téléphone, genre déclaré, propriétaire du véhicule, catégorie, véhicule, plaque, pièce d’identité, permis, carte grise et assurance. Ces informations servent à examiner le dossier et gérer l’activité. Le genre déclaré sert aussi à l’option Spécial femme.",
+        "Les demandes, statuts, dates, notes, tarifs, modes de paiement, commissions et écritures financières servent à gérer les courses, les comptes chauffeurs et les bilans. Des données techniques de connexion peuvent être traitées pour assurer le fonctionnement et limiter les abus."
+      ]
+    },
+    {
+      "title": "Localisation et autorisations",
+      "paragraphs": [
+        "L’accès au GPS est demandé pour choisir votre départ ou partager la position du chauffeur pendant une course. Vous pouvez refuser cette permission et choisir un départ manuellement.",
+        "Le partage GPS du chauffeur fonctionne au premier plan, lorsque l’écran de suivi reste ouvert. Cette version ne réalise pas de suivi GPS continu en arrière-plan. La position est visible par le passager concerné, même sans compte, et par les administrateurs autorisés.",
+        "Vous pouvez arrêter le partage ou retirer la permission dans les réglages du téléphone. Cela réduit les possibilités de suivi. La dernière position de suivi est retirée de la course lors de sa fin ou de son annulation ; les lieux de départ et d’arrivée restent dans les données de trajet.",
+        "Les photos et documents sont ceux que vous sélectionnez. Les annonces vocales lisent les événements de course avec le service de synthèse vocale de votre appareil ; elles n’enregistrent pas votre voix et ne nécessitent pas le microphone."
+      ]
+    },
+    {
+      "title": "Qui peut consulter les informations ?",
+      "paragraphs": [
+        "Les chauffeurs éligibles reçoivent les informations nécessaires pour examiner une demande, notamment le nom et les lieux du trajet. Le numéro de téléphone est communiqué au chauffeur affecté après acceptation. Le passager reçoit les coordonnées et les informations du véhicule du chauffeur affecté.",
+        "Les administrateurs autorisés accèdent aux données nécessaires à la validation des dossiers, au suivi des courses et à la gestion financière. Les justificatifs chauffeur sont destinés à cet examen, pas à une publication publique."
+      ]
+    },
+    {
+      "title": "Services techniques et paiements",
+      "paragraphs": [
+        "Le site publié utilise l’hébergement Sites et les services Cloudflare Workers, D1 et R2 pour le traitement et le stockage. Leur infrastructure peut traiter les données hors de RDC ; les lieux et conditions de traitement devront être confirmés par l’exploitant.",
+        "Les cartes utilisent OpenStreetMap. Sur mobile, les composants de carte sont également chargés via unpkg. Ces services reçoivent des requêtes techniques, notamment l’adresse IP ; les tuiles demandées correspondent à la zone affichée.",
+        "Aucun prestataire de paiement électronique n’est actuellement connecté. Les déclarations de paiement et la comptabilité Enroute ne constituent pas une preuve de débit bancaire. Le prestataire, les données transmises et les conditions de paiement seront précisés avant l’activation des paiements électroniques."
+      ]
+    },
+    {
+      "title": "Session et sécurité",
+      "paragraphs": [
+        "Un cookie de session permet la connexion sur le site. L’application conserve son jeton de session dans le stockage sécurisé du téléphone. Ces mécanismes servent à l’accès au service, et non à afficher des publicités ciblées.",
+        "Le site publié communique en HTTPS ; les accès aux dossiers et aux courses sont contrôlés côté serveur. Ces mesures ne garantissent pas une sécurité absolue. Protégez votre appareil et ne partagez pas vos identifiants."
+      ]
+    },
+    {
+      "title": "Conservation et suppression",
+      "paragraphs": [
+        "Classer une course dans l’historique ne supprime pas ses données. Aucune durée générale d’effacement automatique n’est actuellement configurée. Les durées applicables aux comptes, dossiers, trajets, sauvegardes et pièces comptables restent à fixer avant la mise en production commerciale.",
+        "La suppression d’un compte retire les données de compte, les trajets personnels associés et le dossier chauffeur ; les fichiers associés sont placés dans la file d’effacement. Certaines écritures comptables et traces administratives restent distinctes : la suppression du compte ne les efface pas toutes. Leurs durées et les motifs de conservation doivent être précisés par l’exploitant."
+      ]
+    },
+    {
+      "title": "Vos choix et demandes",
+      "paragraphs": [
+        "Dans l’application, ouvrez Compte pour utiliser Supprimer mon compte, ou Effacer mes données invité pour une session invitée. Pour un compte client ou chauffeur, une page de suppression est également disponible sur le site. La suppression nécessite de vérifier votre accès au compte.",
+        "Le contact public permettant de demander un accès, une correction ou une suppression, notamment si vous avez perdu votre session invitée, sera ajouté après communication par l’exploitant. Cette procédure n’est donc pas encore finalisée."
+      ]
+    },
+    {
+      "title": "Mises à jour",
+      "paragraphs": [
+        "Cette politique sera complétée avec l’identité de l’exploitant et ses coordonnées, puis mise à jour avant toute modification importante des traitements, notamment l’ajout d’un prestataire de paiement ou de la localisation en arrière-plan. La date de mise à jour sera indiquée."
+      ]
+    }
+  ]
+}

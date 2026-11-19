@@ -1,3 +1,8 @@
+## 1.8.3 — 19 novembre 2026
+
+- Suivi passager prioritaire après commande, y compris invité : recherche, chauffeur, trajet et fin sans rechercher la carte en bas.
+- Politique de confidentialité provisoire publique et intégrée hors ligne au mobile. Identité légale, contact et conservation à finaliser avant les boutiques.
+
 ## 1.8.2 — 19 novembre 2026
 
 - Annonces vocales automatiques en français : demandes chauffeur, acceptation, arrivée, départ, fin et annulation.
