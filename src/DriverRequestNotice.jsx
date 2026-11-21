@@ -4,7 +4,7 @@ export default function DriverRequestNotice({user,onOpen}){
  const [count,setCount]=useState(0),[error,setError]=useState('');
  useEffect(()=>{
   if(user?.accountType!=='driver')return;
-  const live=createLiveRefresh({interval:2000,read:async()=>{
+  const live=createLiveRefresh({isActive:()=>!document.hidden,interval:2000,read:async()=>{
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
    try{const response=await fetch('/api/rides/state',{cache:'no-store',signal:controller.signal});if(!response.ok)throw Error('Actualisation indisponible');return await response.json();}finally{clearTimeout(timer)}
   },onData:data=>{setCount(data.available?.length||0);setError('')},onError:()=>setError('Connexion interrompue · demandes à actualiser')});

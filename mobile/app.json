@@ -2,18 +2,18 @@
   "expo": {
     "name": "Enroute",
     "slug": "en-route-rdc",
-    "version": "1.8.4",
+    "version": "1.8.5",
     "orientation": "portrait",
     "icon": "./assets/enroute-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "cd.enroute.mobile",
       "supportsTablet": false,
-      "buildNumber": "15"
+      "buildNumber": "16"
     },
     "android": {
       "package": "cd.enroute.mobile",
-      "versionCode": 15,
+      "versionCode": 16,
       "adaptiveIcon": {
         "backgroundColor": "#173e36",
         "foregroundImage": "./assets/enroute-adaptive.png"

@@ -7,11 +7,14 @@ const html = `<!doctype html><html><head><meta name="viewport" content="width=de
 if(window.L){
 const map=L.map('map').setView([-4.36,15.32],12),markers=L.layerGroup().addTo(map);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
-let selection=null,lastBounds='',driverPin=null,hadDriver=false;
+let lastPins='',selection=null,lastBounds='',driverPin=null,hadDriver=false;
 window.setRideMap=function(data){
-selection=data.selectTarget;markers.clearLayers();
+selection=data.selectTarget;
+const pinKey=JSON.stringify([data.pickup,data.destination]);
+if(pinKey!==lastPins){lastPins=pinKey;markers.clearLayers();
 const pins=[[data.pickup,'Client · départ','#e4b73f'],[data.destination,'Arrivée','#173e36']];
 pins.forEach(function(pin){if(pin[0])L.circleMarker(pin[0],{radius:9,color:'#fff',weight:3,fillColor:pin[2],fillOpacity:1}).bindTooltip(pin[1],{direction:'top',permanent:true}).addTo(markers)});
+}
 if(data.driver){if(driverPin)driverPin.setLatLng(data.driver);else driverPin=L.marker(data.driver,{title:'Voiture du chauffeur',alt:'Voiture du chauffeur',icon:L.divIcon({html:${JSON.stringify(carMarkerHtml)},className:'driver-car-icon',iconSize:[44,44],iconAnchor:[22,22],tooltipAnchor:[0,-22]})}).bindTooltip('Chauffeur · GPS',{direction:'top',permanent:true}).addTo(map);if(!hadDriver){map.fitBounds([data.pickup,data.destination,data.driver].filter(Boolean),{padding:[40,40],maxZoom:15});hadDriver=true}else if(!map.getBounds().contains(data.driver))map.panTo(data.driver)}else{if(driverPin)driverPin.remove();driverPin=null;hadDriver=false}
 const bounds=JSON.stringify([data.pickup,data.destination]);
 if(bounds!==lastBounds){lastBounds=bounds;const points=[data.pickup,data.destination,data.driver].filter(Boolean);if(points.length)map.fitBounds(points,{padding:[40,40],maxZoom:15});}
@@ -21,17 +24,19 @@ window.ReactNativeWebView.postMessage(JSON.stringify({type:'ready'}));
 }else window.ReactNativeWebView.postMessage(JSON.stringify({type:'error'}));
 </script></body></html>`;
 
+const mapSource={html,baseUrl:'https://enroute-rdc-test-toman.antonypauniduquetom.chatgpt.site/'};
+
 export default function RideMap({pickup,destination,driver,selectTarget,onPoint}) {
   const ref=useRef(null);
   const [ready,setReady]=useState(false);
   const [error,setError]=useState('');
+  const data=JSON.stringify({pickup,destination,driver,selectTarget}).replace(/</g,'\\u003c');
   useEffect(()=>{
     if(!ready)return;
-    const data=JSON.stringify({pickup,destination,driver,selectTarget}).replace(/</g,'\\u003c');
     ref.current?.injectJavaScript(`window.setRideMap&&window.setRideMap(${data});true;`);
-  },[ready,pickup,destination,driver,selectTarget]);
+  },[ready,data]);
   return <View style={styles.container}>
-    <WebView ref={ref} source={{html,baseUrl:'https://enroute-rdc-test-toman.antonypauniduquetom.chatgpt.site/'}}
+    <WebView ref={ref} source={mapSource}
       style={styles.map} scrollEnabled={false} javaScriptEnabled domStorageEnabled={false}
       mixedContentMode="never" allowFileAccess={false} setSupportMultipleWindows={false}
       onError={()=>setError('Carte indisponible. Vérifie ta connexion Internet.')}

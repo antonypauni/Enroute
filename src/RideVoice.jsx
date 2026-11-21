@@ -21,7 +21,7 @@ export default function RideVoice({user}) {
     };
     const unlock = () => { unlocked = true; if (pending) speak(pending); };
     const track = createRideVoice(speak);
-    const live = createLiveRefresh({interval:2000, read:async()=>{
+    const live = createLiveRefresh({isActive:()=>!document.hidden,interval:2000, read:async()=>{
       const response = await fetch('/api/rides/state', {cache:'no-store',signal:AbortSignal.timeout(10000)});
       if (!response.ok) throw Error('Actualisation indisponible');
       return response.json();

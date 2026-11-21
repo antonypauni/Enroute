@@ -1,3 +1,4 @@
+import {shouldRefreshRides} from './rideRefreshPolicy.mjs';
 import {focusedPassengerRide} from './focusedRide.mjs';
 import PrivacyPolicy from './PrivacyPolicy';
 import * as Speech from 'expo-speech';
@@ -176,8 +177,9 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!session || !(account?.accountType==='driver'||['trips','offers'].includes(page))) return;
+    if (!shouldRefreshRides(session,account)) return;
     const live=createLiveRefresh({
+      isActive:()=>AppState.currentState==='active',
       read:async()=>({revision:rideRevision.current,data:await request('rides/state',undefined,session)}),
       onData:({revision,data})=>{if(revision!==rideRevision.current)return;setRides(data.rides||[]);setAvailable(data.available||[]);setFinancialStatus(data.financialStatus||null);setDriverOnline(data.application?.online!==false);setLiveError('');setLastSync(Date.now());},
       onError:error=>setLiveError(connectionMessage(error))
@@ -185,7 +187,7 @@ export default function App() {
     live.refresh();
     const subscription=AppState.addEventListener('change',state=>{if(state==='active')live.refresh()});
     return()=>{live.stop();subscription.remove();};
-  },[session,page,account?.accountType]);
+  },[session,account?.role,account?.accountType]);
 
   function navigate(next) {
     if (busy) return;
@@ -309,7 +311,7 @@ export default function App() {
     <StatusBar style="dark" />
     <ScrollView ref={rideScroll} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
       <Text style={styles.brand}>Enroute <Text style={styles.arrow}>↗</Text></Text>
-      <Text style={{color:muted,fontSize:11}}>Version 1.8.4 · Enroute</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:(account?.accountType==='driver'?[['offers','Demandes clients ('+available.length+')'],['trips','Mes courses'],['driver','Dossier'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']])).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
+      <Text style={{color:muted,fontSize:11}}>Version 1.8.5 · Enroute</Text><View style={styles.nav}>{(account&&['primary','secondary'].includes(account.role)?[['admin','Administration'],['account','Compte']]:(account?.accountType==='driver'?[['offers','Demandes clients ('+available.length+')'],['trips','Mes courses'],['driver','Dossier'],['account','Compte']]:[['ride','Course'],['trips','Mes trajets'],['account','Compte']])).map(([id,label])=><Pressable key={id} onPress={()=>navigate(id)} accessibilityRole="tab" accessibilityState={{selected:page===id}} style={[styles.tab,page===id && styles.activeTab]}><Text style={styles.tabText}>{label}</Text></Pressable>)}</View>
       {session&&account?.accountType==='driver'&&<View style={styles.card}><Text accessibilityLiveRegion="polite" style={styles.body}>{liveError?'Actualisation interrompue : '+liveError:lastSync?'Demandes actualisées à '+new Date(lastSync).toLocaleTimeString('fr-FR'):'Connexion aux demandes…'}</Text>{available.length>0&&page!=='offers'&&<Button onPress={()=>navigate('offers')}>{available.length} demande(s) à accepter · Voir les clients</Button>}</View>}
       {financialStatus&&account?.accountType==='driver'&&<View style={styles.card}><Text style={styles.cardTitle}>{financialStatus.cashRestricted?'Compte actif · courses électroniques uniquement':'Votre commission cumulée'}</Text><Text style={styles.body}>{financialStatus.debtCDF.toLocaleString('fr-FR')} FC · seuil {financialStatus.thresholdCDF.toLocaleString('fr-FR')} FC{financialStatus.debtUSD>0?' · '+(financialStatus.debtUSD/100).toFixed(2)+' USD':''}</Text><Text style={styles.body}>{financialStatus.cashRestricted?'Les nouvelles courses en espèces sont indisponibles. Continuez les courses électroniques confirmées ; les espèces reviennent après régularisation de la commission.':'Les 7 % s’accumulent sans virement après chaque course.'}</Text></View>}
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}

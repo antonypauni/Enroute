@@ -1,3 +1,11 @@
+## 1.8.5 — 21 novembre 2026
+
+- Actualisation mobile des passagers et invités maintenue sur l’écran Course et les autres onglets ; reprise au premier plan.
+- Suspension des lectures réseau en arrière-plan sur le web et le mobile ; résultats tardifs ignorés.
+- Carte mobile : source stable, mises à jour par coordonnées et conservation des repères inchangés.
+- Filtrage des offres : contrôles invariants calculés une seule fois. Microbenchmark local de 5 000 demandes : médiane de 26,75 ms à 4,65 ms (5 passages après chauffe), hors réseau et sans garantie de capacité en production.
+- 68 tests automatisés réussis.
+
 ## 1.8.4 — 19 novembre 2026
 
 - Encaissement obligatoire avant clôture chauffeur : confirmation explicite des espèces ou règlement électronique confirmé côté serveur.
